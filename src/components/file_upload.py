@@ -254,25 +254,6 @@ def render_file_upload(pinecone_service: PineconeService):
             # テキストファイルの場合はメタデータ入力フォームを表示
             st.subheader("メタデータ入力")
             
-            # 大カテゴリの選択
-            main_category = st.selectbox(
-                "大カテゴリ",
-                METADATA_CATEGORIES["大カテゴリ"],
-                index=None,
-                placeholder="大カテゴリを選択してください（任意）"
-            )
-            
-            # 中カテゴリの選択（大カテゴリに依存）
-            if main_category:
-                sub_category = st.selectbox(
-                    "中カテゴリ",
-                    METADATA_CATEGORIES["中カテゴリ"][main_category],
-                    index=None,
-                    placeholder="中カテゴリを選択してください（任意）"
-                )
-            else:
-                sub_category = None
-            
             # 市区町村の選択
             city = st.selectbox(
                 "市区町村",
@@ -560,7 +541,7 @@ def render_file_upload(pinecone_service: PineconeService):
                                 "question_examples": all_question_examples
                             }
                             
-                            # カテゴリの設定（優先順位: 手動編集 > AI分類 > デフォルト）
+                            # カテゴリの設定（優先順位: 手動編集 > AI分類）
                             if 'manual_main_category' in chunk and chunk['manual_main_category']:
                                 metadata["main_category"] = chunk['manual_main_category']
                                 metadata["sub_category"] = chunk.get('manual_sub_category', '')
@@ -571,10 +552,6 @@ def render_file_upload(pinecone_service: PineconeService):
                                 # AI分類の詳細情報も保存
                                 metadata["ai_confidence"] = ai_result.get('confidence', 0.0)
                                 metadata["ai_reasoning"] = ai_result.get('reasoning', '')
-                            else:
-                                # デフォルトのカテゴリ設定
-                                metadata["main_category"] = main_category if main_category else ""
-                                metadata["sub_category"] = sub_category if sub_category else ""
                             
                             # チャンクの基本情報
                             chunk["metadata"] = metadata
