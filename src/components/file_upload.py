@@ -315,418 +315,280 @@ def render_file_upload(pinecone_service: PineconeService):
             
             # チャンク分割方法の選択
             st.subheader("📝 チャンク分割設定")
-            chunk_method = st.radio(
-                "チャンク分割方法を選択してください",
-                options=[
-                    ("auto", "🤖 自動分割（推奨）", "システムが自動的に文脈を考慮して分割します"),
-                    ("manual", "✏️ 手動分割", "自分でチャンクの境界を指定します")
-                ],
-                format_func=lambda x: x[1],
-                help="自動分割は文脈を考慮して適切に分割します。手動分割は自分で境界を指定できます。"
-            )
+            st.info("チャンク分割は手動で行います。テキストを編集してチャンクの境界を指定してください。")
             
             # ファイル内容の読み込み
             file_content = read_file_content(uploaded_file)
             
-            if chunk_method[0] == "manual":
-                # 手動分割モード
-                st.markdown("### ✏️ 手動チャンク分割")
-                st.markdown("テキストを編集してチャンクの境界を指定してください。")
+            # 手動分割モード（唯一の選択肢）
+            st.markdown("### ✏️ 手動チャンク分割")
+            st.markdown("テキストを編集してチャンクの境界を指定してください。")
+            
+            # チャンクセパレータの設定
+            st.markdown("#### 📋 チャンクセパレータ")
+            st.markdown("チャンクを区切る文字列を指定してください。複数のセパレータを使用する場合は改行で区切ってください。")
+            
+            # よく使われるセパレータの例
+            with st.expander("💡 よく使われるセパレータの例", expanded=False):
+                st.markdown("**基本的なセパレータ:**")
+                st.code("---\n###\n##\n#")
                 
-                # チャンクセパレータの設定
-                st.markdown("#### 📋 チャンクセパレータ")
-                st.markdown("チャンクを区切る文字列を指定してください。複数のセパレータを使用する場合は改行で区切ってください。")
+                st.markdown("**段落区切り:**")
+                st.code("\\n\\n\n---\n***")
                 
-                # よく使われるセパレータの例
-                with st.expander("💡 よく使われるセパレータの例", expanded=False):
-                    st.markdown("**基本的なセパレータ:**")
-                    st.code("---\n###\n##\n#")
-                    
-                    st.markdown("**段落区切り:**")
-                    st.code("\\n\\n\n---\n***")
-                    
-                    st.markdown("**見出し区切り:**")
-                    st.code("第1章\n第2章\n第3章\n\n1.\n2.\n3.")
-                    
-                    st.markdown("**カスタム区切り:**")
-                    st.code("【物件概要】\n【交通アクセス】\n【周辺環境】\n\n=== 物件情報 ===\n=== アクセス情報 ===")
-                    
-                    st.markdown("**使用方法:**")
-                    st.markdown("1. 上記の例から適切なセパレータをコピー")
-                    st.markdown("2. 下のテキストエリアに貼り付け")
-                    st.markdown("3. 必要に応じてカスタマイズ")
-                    st.markdown("4. テキスト内にセパレータを追加してチャンクを区切る")
+                st.markdown("**見出し区切り:**")
+                st.code("第1章\n第2章\n第3章\n\n1.\n2.\n3.")
                 
-                default_separators = "---\n###\n##"
-                chunk_separators = st.text_area(
-                    "チャンクセパレータ",
-                    value=default_separators,
-                    height=100,
-                    help="チャンクを区切る文字列を入力してください。複数のセパレータを使用する場合は改行で区切ってください。例：---, ###, ## など"
-                )
+                st.markdown("**カスタム区切り:**")
+                st.code("【物件概要】\n【交通アクセス】\n【周辺環境】\n\n=== 物件情報 ===\n=== アクセス情報 ===")
                 
-                # テキストエディタ
-                st.markdown("#### 📝 テキスト編集")
-                st.markdown("必要に応じてテキストを編集し、セパレータを追加してチャンクを区切ってください。")
+                st.markdown("**使用方法:**")
+                st.markdown("1. 上記の例から適切なセパレータをコピー")
+                st.markdown("2. 下のテキストエリアに貼り付け")
+                st.markdown("3. 必要に応じてカスタマイズ")
+                st.markdown("4. テキスト内にセパレータを追加してチャンクを区切る")
+            
+            default_separators = "---\n###\n##"
+            chunk_separators = st.text_area(
+                "チャンクセパレータ",
+                value=default_separators,
+                height=100,
+                help="チャンクを区切る文字列を入力してください。複数のセパレータを使用する場合は改行で区切ってください。例：---, ###, ## など"
+            )
+            
+            # テキストエディタ
+            st.markdown("#### 📝 テキスト編集")
+            st.markdown("必要に応じてテキストを編集し、セパレータを追加してチャンクを区切ってください。")
+            
+            edited_text = st.text_area(
+                "テキスト内容",
+                value=file_content,
+                height=400,
+                help="テキストを編集してチャンクの境界を指定してください"
+            )
+            
+            # プレビューボタン
+            if st.button("👁️ チャンク分割をプレビュー"):
+                st.markdown("#### 📋 チャンク分割プレビュー")
                 
-                edited_text = st.text_area(
-                    "テキスト内容",
-                    value=file_content,
-                    height=400,
-                    help="テキストを編集してチャンクの境界を指定してください"
-                )
+                # プレビューチャンクを生成
+                preview_chunks_list = preview_chunks(edited_text, chunk_separators)
                 
-                # プレビューボタン
-                if st.button("👁️ チャンク分割をプレビュー"):
-                    st.markdown("#### 📋 チャンク分割プレビュー")
+                if preview_chunks_list:
+                    st.success(f"✅ {len(preview_chunks_list)}個のチャンクに分割されました")
                     
-                    # プレビューチャンクを生成
-                    preview_chunks_list = preview_chunks(edited_text, chunk_separators)
+                    # 統計情報を表示
+                    total_chars = sum(len(chunk['text']) for chunk in preview_chunks_list)
+                    avg_chars = total_chars // len(preview_chunks_list) if preview_chunks_list else 0
                     
-                    if preview_chunks_list:
-                        st.success(f"✅ {len(preview_chunks_list)}個のチャンクに分割されました")
-                        
-                        # 統計情報を表示
-                        total_chars = sum(len(chunk['text']) for chunk in preview_chunks_list)
-                        avg_chars = total_chars // len(preview_chunks_list) if preview_chunks_list else 0
-                        
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            st.metric("チャンク数", len(preview_chunks_list))
-                        with col2:
-                            st.metric("総文字数", total_chars)
-                        with col3:
-                            st.metric("平均文字数", avg_chars)
-                        
-                        # AIカテゴリ分類の実行
-                        st.markdown("#### 🤖 AIカテゴリ分類")
-                        if st.button("🔍 AIでカテゴリを自動分類", type="primary"):
-                            try:
-                                # カテゴリ分類器を初期化
-                                classifier = CategoryClassifier()
-                                
-                                with st.spinner("AIがチャンクを分析中..."):
-                                    # 各チャンクを分類
-                                    classified_chunks = []
-                                    for i, chunk in enumerate(preview_chunks_list):
-                                        st.write(f"チャンク {i+1}/{len(preview_chunks_list)} を分析中...")
-                                        
-                                        # AI分類を実行
-                                        classification = classifier.classify_text(chunk['text'])
-                                        
-                                        # 分類結果をチャンクに追加
-                                        chunk_with_classification = chunk.copy()
-                                        chunk_with_classification['ai_classification'] = classification
-                                        classified_chunks.append(chunk_with_classification)
-                                
-                                # 分類結果をセッション状態に保存
-                                st.session_state['classified_chunks'] = classified_chunks
-                                st.success("✅ AIカテゴリ分類が完了しました！")
-                                st.rerun()
-                                
-                            except Exception as e:
-                                st.error(f"AIカテゴリ分類中にエラーが発生しました: {str(e)}")
-                        
-                        # 分類済みチャンクがある場合は表示
-                        if 'classified_chunks' in st.session_state:
-                            classified_chunks = st.session_state['classified_chunks']
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("チャンク数", len(preview_chunks_list))
+                    with col2:
+                        st.metric("総文字数", total_chars)
+                    with col3:
+                        st.metric("平均文字数", avg_chars)
+                    
+                    # 各チャンクを表示
+                    for i, chunk in enumerate(preview_chunks_list):
+                        with st.expander(f"📄 チャンク {i+1} (文字数: {len(chunk['text'])})", expanded=False):
+                            # チャンクの詳細情報
+                            st.markdown(f"**チャンクID:** {chunk['id']}")
+                            st.markdown(f"**文字数:** {len(chunk['text'])}文字")
+                            if 'separators_used' in chunk['metadata']:
+                                st.markdown(f"**使用セパレータ:** {', '.join(chunk['metadata']['separators_used'])}")
                             
-                            st.markdown("#### 📝 チャンク詳細とカテゴリ編集")
-                            st.markdown("各チャンクの内容とAIが分類したカテゴリを確認・編集できます。")
+                            # チャンク内容の表示
+                            st.text_area(
+                                f"チャンク {i+1} の内容",
+                                value=chunk['text'],
+                                height=150,
+                                key=f"preview_chunk_{i}"
+                            )
+                            
+                            # カテゴリ設定セクション
+                            st.markdown("#### 🏷️ カテゴリ設定")
                             
                             # カテゴリ分類器を初期化
                             classifier = CategoryClassifier()
                             
-                            # 各チャンクを表示
-                            for i, chunk in enumerate(classified_chunks):
-                                with st.expander(f"📄 チャンク {i+1} (文字数: {len(chunk['text'])})", expanded=False):
-                                    # チャンクの詳細情報
-                                    st.markdown(f"**チャンクID:** {chunk['id']}")
-                                    st.markdown(f"**文字数:** {len(chunk['text'])}文字")
-                                    if 'separators_used' in chunk['metadata']:
-                                        st.markdown(f"**使用セパレータ:** {', '.join(chunk['metadata']['separators_used'])}")
-                                    
-                                    # チャンク内容の表示
-                                    st.text_area(
-                                        f"チャンク {i+1} の内容",
-                                        value=chunk['text'],
-                                        height=150,
-                                        key=f"preview_chunk_{i}"
-                                    )
-                                    
-                                    # AI分類結果の表示
-                                    if 'ai_classification' in chunk:
-                                        ai_result = chunk['ai_classification']
-                                        st.markdown("#### 🤖 AI分類結果")
-                                        
-                                        col1, col2 = st.columns(2)
-                                        with col1:
-                                            st.markdown(f"**大カテゴリ:** {ai_result.get('main_category', '未分類')}")
-                                            st.markdown(f"**中カテゴリ:** {ai_result.get('sub_category', '未分類')}")
-                                        with col2:
-                                            confidence = ai_result.get('confidence', 0.0)
-                                            st.markdown(f"**確信度:** {confidence:.2%}")
-                                        
-                                        st.markdown(f"**分類理由:** {ai_result.get('reasoning', '理由なし')}")
-                                        
-                                        # 確信度に応じた色分け
-                                        if confidence >= 0.8:
-                                            st.success("✅ 高確信度")
-                                        elif confidence >= 0.6:
-                                            st.warning("⚠️ 中確信度")
-                                        else:
-                                            st.error("❌ 低確信度")
-                                    
-                                    # 手動カテゴリ編集
-                                    st.markdown("#### ✏️ カテゴリ手動編集")
-                                    
-                                    # 現在のAI分類結果を初期値として使用
-                                    current_main = ai_result.get('main_category', '') if 'ai_classification' in chunk else ''
-                                    current_sub = ai_result.get('sub_category', '') if 'ai_classification' in chunk else ''
-                                    
-                                    # 大カテゴリの選択
-                                    main_category_options = [''] + classifier.get_main_categories()
-                                    main_category_index = main_category_options.index(current_main) if current_main in main_category_options else 0
-                                    
-                                    selected_main = st.selectbox(
-                                        "大カテゴリ",
-                                        options=main_category_options,
-                                        index=main_category_index,
-                                        key=f"main_cat_{i}"
-                                    )
-                                    
-                                    # 中カテゴリの選択
-                                    if selected_main:
-                                        sub_category_options = [''] + classifier.get_sub_categories(selected_main)
-                                        sub_category_index = sub_category_options.index(current_sub) if current_sub in sub_category_options else 0
-                                        
-                                        selected_sub = st.selectbox(
-                                            "中カテゴリ",
-                                            options=sub_category_options,
-                                            index=sub_category_index,
-                                            key=f"sub_cat_{i}"
-                                        )
-                                    else:
-                                        selected_sub = ""
-                                    
-                                    # 編集されたカテゴリをチャンクに保存
-                                    chunk['manual_main_category'] = selected_main
-                                    chunk['manual_sub_category'] = selected_sub
-                                    
-                                    # 変更の確認
-                                    if selected_main != current_main or selected_sub != current_sub:
-                                        st.info("📝 カテゴリが手動で変更されました")
-                        
-                        # 分類されていない場合は通常の表示
-                        else:
-                            # 各チャンクを表示
-                            for i, chunk in enumerate(preview_chunks_list):
-                                with st.expander(f"📄 チャンク {i+1} (文字数: {len(chunk['text'])})", expanded=False):
-                                    # チャンクの詳細情報
-                                    st.markdown(f"**チャンクID:** {chunk['id']}")
-                                    st.markdown(f"**文字数:** {len(chunk['text'])}文字")
-                                    if 'separators_used' in chunk['metadata']:
-                                        st.markdown(f"**使用セパレータ:** {', '.join(chunk['metadata']['separators_used'])}")
-                                    
-                                    # チャンク内容の表示
-                                    st.text_area(
-                                        f"チャンク {i+1} の内容",
-                                        value=chunk['text'],
-                                        height=200,
-                                        key=f"preview_chunk_{i}"
-                                    )
-                        
-                        # 分割の品質チェック
-                        st.markdown("#### 🔍 分割品質チェック")
-                        
-                        # 短すぎるチャンクの警告
-                        short_chunks = [chunk for chunk in preview_chunks_list if len(chunk['text']) < 50]
-                        if short_chunks:
-                            st.warning(f"⚠️ {len(short_chunks)}個のチャンクが50文字未満です。内容が不十分な可能性があります。")
-                        
-                        # 長すぎるチャンクの警告
-                        long_chunks = [chunk for chunk in preview_chunks_list if len(chunk['text']) > 2000]
-                        if long_chunks:
-                            st.warning(f"⚠️ {len(long_chunks)}個のチャンクが2000文字を超えています。さらに分割することを検討してください。")
-                        
-                        # 推奨事項
-                        if not short_chunks and not long_chunks:
-                            st.success("✅ チャンク分割の品質は良好です。")
-                        
-                        # セパレータの使用状況
-                        st.markdown("#### 📊 セパレータ使用状況")
-                        separator_counts = {}
-                        for chunk in preview_chunks_list:
-                            if 'separators_used' in chunk['metadata']:
-                                for sep in chunk['metadata']['separators_used']:
-                                    separator_counts[sep] = separator_counts.get(sep, 0) + 1
-                        
-                        if separator_counts:
-                            for sep, count in separator_counts.items():
-                                st.markdown(f"- `{sep}`: {count}回使用")
-                        else:
-                            st.info("セパレータの使用状況は記録されていません。")
-                    else:
-                        st.warning("⚠️ チャンクが生成されませんでした。セパレータを確認してください。")
-                        
-                        # セパレータの確認を促す
-                        st.markdown("#### 💡 セパレータの確認")
-                        st.markdown("以下の点を確認してください：")
-                        st.markdown("1. セパレータが正しく入力されているか")
-                        st.markdown("2. テキスト内にセパレータが含まれているか")
-                        st.markdown("3. セパレータの前後に適切な改行があるか")
-                        
-                        # 現在のセパレータを表示
-                        st.markdown("**現在のセパレータ:**")
-                        st.code(chunk_separators)
-                
-                # 保存ボタン
-                if st.button("💾 データベースに保存（手動分割）"):
-                    try:
-                        with st.spinner("ファイルを処理中..."):
-                            # 分類済みチャンクがある場合はそれを使用、ない場合は通常の分割
-                            if 'classified_chunks' in st.session_state:
-                                chunks = st.session_state['classified_chunks']
-                            else:
-                                chunks = advanced_manual_chunk_split(edited_text, chunk_separators)
-                            
-                            if not chunks:
-                                st.error("チャンクが生成されませんでした。セパレータを確認してください。")
-                                return
-                            
-                            st.write(f"ファイルを{len(chunks)}個のチャンクに分割しました")
-                            
-                            # メタデータを追加
-                            for chunk in chunks:
-                                # 基本メタデータ
-                                metadata = {
-                                    "main_category": "",
-                                    "sub_category": "",
-                                    "city": city if city else "",
-                                    "created_date": created_date.isoformat() if created_date else "",
-                                    "upload_date": upload_date.isoformat(),
-                                    "source": source if source else "",
-                                    "question_examples": all_question_examples
-                                }
-                                
-                                # カテゴリの設定（優先順位: 手動編集 > AI分類 > デフォルト）
-                                if 'manual_main_category' in chunk and chunk['manual_main_category']:
-                                    metadata["main_category"] = chunk['manual_main_category']
-                                    metadata["sub_category"] = chunk.get('manual_sub_category', '')
-                                elif 'ai_classification' in chunk:
-                                    ai_result = chunk['ai_classification']
-                                    metadata["main_category"] = ai_result.get('main_category', '')
-                                    metadata["sub_category"] = ai_result.get('sub_category', '')
-                                    # AI分類の詳細情報も保存
-                                    metadata["ai_confidence"] = ai_result.get('confidence', 0.0)
-                                    metadata["ai_reasoning"] = ai_result.get('reasoning', '')
-                                else:
-                                    # デフォルトのカテゴリ設定
-                                    metadata["main_category"] = main_category if main_category else ""
-                                    metadata["sub_category"] = sub_category if sub_category else ""
-                                
-                                # チャンクの基本情報
-                                chunk["metadata"] = metadata
-                                chunk["filename"] = uploaded_file.name
-                                chunk["chunk_id"] = chunk["id"]
-                                
-                                # AI分類情報がある場合は追加
-                                if 'ai_classification' in chunk:
-                                    chunk["metadata"]["ai_classification"] = chunk['ai_classification']
-                            
-                            with st.spinner("Pineconeにアップロード中..."):
-                                pinecone_service.upload_chunks(chunks)
-                                st.success("アップロードが完了しました！")
-                                
-                                # セッション状態をクリア
-                                if 'classified_chunks' in st.session_state:
-                                    del st.session_state['classified_chunks']
-                    except ValueError as e:
-                        st.error(str(e))
-                    except Exception as e:
-                        st.error(f"エラーが発生しました: {str(e)}")
-            
-            else:
-                # 自動分割モード（従来の処理）
-                st.markdown("### 🤖 自動チャンク分割")
-                st.markdown("システムが自動的に文脈を考慮してチャンクを分割します。")
-                
-                # ファイル内容の表示
-                with st.expander("📄 ファイル内容の確認", expanded=False):
-                    st.text_area(
-                        "ファイル内容",
-                        value=file_content,
-                        height=300,
-                        help="アップロードされたファイルの内容を確認できます"
-                    )
-                
-                # AIカテゴリ分類のオプション
-                st.markdown("#### 🤖 AIカテゴリ分類（オプション）")
-                use_ai_classification = st.checkbox(
-                    "AIでカテゴリを自動分類する",
-                    value=False,
-                    help="チェックすると、アップロード後にAIが各チャンクのカテゴリを自動分類します"
-                )
-                
-                if st.button("データベースに保存"):
-                    try:
-                        with st.spinner("ファイルを処理中..."):
-                            chunks = process_text_file(file_content, uploaded_file.name)
-                            
-                            st.write(f"ファイルを{len(chunks)}個のチャンクに分割しました")
-                            
-                            # AI分類を実行する場合
-                            if use_ai_classification:
-                                st.markdown("#### 🤖 AIカテゴリ分類を実行中...")
+                            # AI分類ボタン（チャンクごと）
+                            if st.button(f"🤖 AIでカテゴリを自動判定", key=f"ai_classify_{i}"):
                                 try:
-                                    classifier = CategoryClassifier()
-                                    
-                                    for i, chunk in enumerate(chunks):
-                                        st.write(f"チャンク {i+1}/{len(chunks)} を分析中...")
-                                        
+                                    with st.spinner(f"チャンク {i+1} を分析中..."):
                                         # AI分類を実行
                                         classification = classifier.classify_text(chunk['text'])
                                         
-                                        # 分類結果をメタデータに追加
-                                        chunk["metadata"]["ai_classification"] = classification
-                                        chunk["metadata"]["ai_confidence"] = classification.get('confidence', 0.0)
-                                        chunk["metadata"]["ai_reasoning"] = classification.get('reasoning', '')
+                                        # 分類結果をチャンクに保存
+                                        chunk['ai_classification'] = classification
+                                        st.success(f"✅ チャンク {i+1} の分類が完了しました！")
+                                        st.rerun()
                                         
-                                        # AI分類結果を優先してカテゴリを設定
-                                        if classification.get('main_category'):
-                                            chunk["metadata"]["main_category"] = classification.get('main_category', '')
-                                            chunk["metadata"]["sub_category"] = classification.get('sub_category', '')
-                                    
-                                    st.success("✅ AIカテゴリ分類が完了しました！")
-                                    
                                 except Exception as e:
-                                    st.warning(f"AIカテゴリ分類中にエラーが発生しました: {str(e)}")
-                                    st.info("デフォルトのカテゴリ設定で続行します。")
+                                    st.error(f"AI分類中にエラーが発生しました: {str(e)}")
                             
-                            # メタデータを追加
-                            for chunk in chunks:
-                                # AI分類がない場合はデフォルトのカテゴリ設定を使用
-                                if not use_ai_classification or 'ai_classification' not in chunk["metadata"]:
-                                    chunk["metadata"].update({
-                                        "main_category": main_category if main_category else "",
-                                        "sub_category": sub_category if sub_category else "",
-                                    })
+                            # AI分類結果の表示
+                            if 'ai_classification' in chunk:
+                                ai_result = chunk['ai_classification']
+                                st.markdown("**🤖 AI分類結果:**")
                                 
-                                # その他のメタデータ
-                                chunk["metadata"].update({
-                                    "city": city if city else "",
-                                    "created_date": created_date.isoformat() if created_date else "",
-                                    "upload_date": upload_date.isoformat(),
-                                    "source": source if source else "",
-                                    "question_examples": all_question_examples
-                                })
-                                chunk["filename"] = uploaded_file.name
-                                chunk["chunk_id"] = chunk["id"]
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    st.markdown(f"**大カテゴリ:** {ai_result.get('main_category', '未分類')}")
+                                    st.markdown(f"**中カテゴリ:** {ai_result.get('sub_category', '未分類')}")
+                                with col2:
+                                    confidence = ai_result.get('confidence', 0.0)
+                                    st.markdown(f"**確信度:** {confidence:.2%}")
+                                
+                                st.markdown(f"**分類理由:** {ai_result.get('reasoning', '理由なし')}")
+                                
+                                # 確信度に応じた色分け
+                                if confidence >= 0.8:
+                                    st.success("✅ 高確信度")
+                                elif confidence >= 0.6:
+                                    st.warning("⚠️ 中確信度")
+                                else:
+                                    st.error("❌ 低確信度")
                             
-                            with st.spinner("Pineconeにアップロード中..."):
-                                pinecone_service.upload_chunks(chunks)
-                                st.success("アップロードが完了しました！")
-                    except ValueError as e:
-                        st.error(str(e))
-                    except Exception as e:
-                        st.error(f"エラーが発生しました: {str(e)}") 
+                            # 手動カテゴリ編集
+                            st.markdown("**✏️ カテゴリ手動編集:**")
+                            
+                            # 現在のAI分類結果を初期値として使用
+                            current_main = ai_result.get('main_category', '') if 'ai_classification' in chunk else ''
+                            current_sub = ai_result.get('sub_category', '') if 'ai_classification' in chunk else ''
+                            
+                            # 大カテゴリの選択
+                            main_category_options = [''] + classifier.get_main_categories()
+                            main_category_index = main_category_options.index(current_main) if current_main in main_category_options else 0
+                            
+                            selected_main = st.selectbox(
+                                "大カテゴリ",
+                                options=main_category_options,
+                                index=main_category_index,
+                                key=f"main_cat_{i}"
+                            )
+                            
+                            # 中カテゴリの選択
+                            if selected_main:
+                                sub_category_options = [''] + classifier.get_sub_categories(selected_main)
+                                sub_category_index = sub_category_options.index(current_sub) if current_sub in sub_category_options else 0
+                                
+                                selected_sub = st.selectbox(
+                                    "中カテゴリ",
+                                    options=sub_category_options,
+                                    index=sub_category_index,
+                                    key=f"sub_cat_{i}"
+                                )
+                            else:
+                                selected_sub = ""
+                            
+                            # 編集されたカテゴリをチャンクに保存
+                            chunk['manual_main_category'] = selected_main
+                            chunk['manual_sub_category'] = selected_sub
+                            
+                            # 変更の確認
+                            if selected_main != current_main or selected_sub != current_sub:
+                                st.info("📝 カテゴリが手動で変更されました")
+                    
+                    # 分割の品質チェック
+                    st.markdown("#### 🔍 分割品質チェック")
+                    
+                    # 短すぎるチャンクの警告
+                    short_chunks = [chunk for chunk in preview_chunks_list if len(chunk['text']) < 50]
+                    if short_chunks:
+                        st.warning(f"⚠️ {len(short_chunks)}個のチャンクが50文字未満です。内容が不十分な可能性があります。")
+                    
+                    # 長すぎるチャンクの警告
+                    long_chunks = [chunk for chunk in preview_chunks_list if len(chunk['text']) > 2000]
+                    if long_chunks:
+                        st.warning(f"⚠️ {len(long_chunks)}個のチャンクが2000文字を超えています。さらに分割することを検討してください。")
+                    
+                    # 推奨事項
+                    if not short_chunks and not long_chunks:
+                        st.success("✅ チャンク分割の品質は良好です。")
+                    
+                    # セパレータの使用状況
+                    st.markdown("#### 📊 セパレータ使用状況")
+                    separator_counts = {}
+                    for chunk in preview_chunks_list:
+                        if 'separators_used' in chunk['metadata']:
+                            for sep in chunk['metadata']['separators_used']:
+                                separator_counts[sep] = separator_counts.get(sep, 0) + 1
+                    
+                    if separator_counts:
+                        for sep, count in separator_counts.items():
+                            st.markdown(f"- `{sep}`: {count}回使用")
+                    else:
+                        st.info("セパレータの使用状況は記録されていません。")
+                else:
+                    st.warning("⚠️ チャンクが生成されませんでした。セパレータを確認してください。")
+                    
+                    # セパレータの確認を促す
+                    st.markdown("#### 💡 セパレータの確認")
+                    st.markdown("以下の点を確認してください：")
+                    st.markdown("1. セパレータが正しく入力されているか")
+                    st.markdown("2. テキスト内にセパレータが含まれているか")
+                    st.markdown("3. セパレータの前後に適切な改行があるか")
+                    
+                    # 現在のセパレータを表示
+                    st.markdown("**現在のセパレータ:**")
+                    st.code(chunk_separators)
+            
+            # 保存ボタン
+            if st.button("💾 データベースに保存"):
+                try:
+                    with st.spinner("ファイルを処理中..."):
+                        # 手動分割でチャンクを生成
+                        chunks = advanced_manual_chunk_split(edited_text, chunk_separators)
+                        
+                        if not chunks:
+                            st.error("チャンクが生成されませんでした。セパレータを確認してください。")
+                            return
+                        
+                        st.write(f"ファイルを{len(chunks)}個のチャンクに分割しました")
+                        
+                        # メタデータを追加
+                        for chunk in chunks:
+                            # 基本メタデータ
+                            metadata = {
+                                "main_category": "",
+                                "sub_category": "",
+                                "city": city if city else "",
+                                "created_date": created_date.isoformat() if created_date else "",
+                                "upload_date": upload_date.isoformat(),
+                                "source": source if source else "",
+                                "question_examples": all_question_examples
+                            }
+                            
+                            # カテゴリの設定（優先順位: 手動編集 > AI分類 > デフォルト）
+                            if 'manual_main_category' in chunk and chunk['manual_main_category']:
+                                metadata["main_category"] = chunk['manual_main_category']
+                                metadata["sub_category"] = chunk.get('manual_sub_category', '')
+                            elif 'ai_classification' in chunk:
+                                ai_result = chunk['ai_classification']
+                                metadata["main_category"] = ai_result.get('main_category', '')
+                                metadata["sub_category"] = ai_result.get('sub_category', '')
+                                # AI分類の詳細情報も保存
+                                metadata["ai_confidence"] = ai_result.get('confidence', 0.0)
+                                metadata["ai_reasoning"] = ai_result.get('reasoning', '')
+                            else:
+                                # デフォルトのカテゴリ設定
+                                metadata["main_category"] = main_category if main_category else ""
+                                metadata["sub_category"] = sub_category if sub_category else ""
+                            
+                            # チャンクの基本情報
+                            chunk["metadata"] = metadata
+                            chunk["filename"] = uploaded_file.name
+                            chunk["chunk_id"] = chunk["id"]
+                            
+                            # AI分類情報がある場合は追加
+                            if 'ai_classification' in chunk:
+                                chunk["metadata"]["ai_classification"] = chunk['ai_classification']
+                        
+                        with st.spinner("Pineconeにアップロード中..."):
+                            pinecone_service.upload_chunks(chunks)
+                            st.success("アップロードが完了しました！")
+                except ValueError as e:
+                    st.error(str(e))
+                except Exception as e:
+                    st.error(f"エラーが発生しました: {str(e)}") 
