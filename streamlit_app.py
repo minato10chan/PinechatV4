@@ -81,16 +81,14 @@ def main():
                 "chat": 0,
                 "property": 1,
                 "upload": 2,
-                "settings": 3,
-                "agent": 4
+                "settings": 3
             }[st.session_state.current_page]
         )
         st.session_state.current_page = {
             "チャット": "chat",
             "物件情報登録": "property",
             "ファイルアップロード": "upload",
-            "設定": "settings",
-            "Agent": "agent"
+            "設定": "settings"
         }[page]
 
     # メインコンテンツの表示
@@ -100,8 +98,6 @@ def main():
         render_property_upload(pinecone_service)
     elif st.session_state.current_page == "upload":
         render_file_upload(pinecone_service)
-    elif st.session_state.current_page == "agent":
-        render_agent(pinecone_service)
     else:
         render_settings(pinecone_service)
 
