@@ -403,7 +403,6 @@ def render_file_upload(pinecone_service: PineconeService):
                                         # 分類結果をチャンクに保存
                                         chunk['ai_classification'] = classification
                                         st.success(f"✅ チャンク {i+1} の分類が完了しました！")
-                                        st.rerun()
                                         
                                 except Exception as e:
                                     st.error(f"AI分類中にエラーが発生しました: {str(e)}")

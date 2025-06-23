@@ -63,7 +63,7 @@ def read_file_content(file) -> str:
 
 def start_flask_server():
     """Flaskサーバーを起動する"""
-    subprocess.run(["python", "reacttest.py"])
+    subprocess.run(["python"])
 
 # Flaskサーバーを別スレッドで起動
 flask_thread = threading.Thread(target=start_flask_server)
