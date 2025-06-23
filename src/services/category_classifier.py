@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional
 from openai import OpenAI
 from src.config.settings import OPENAI_API_KEY, METADATA_CATEGORIES
 import json
@@ -81,7 +81,7 @@ class CategoryClassifier:
                 "reasoning": f"エラー: {str(e)}"
             }
 
-    def classify_multiple_chunks(self, chunks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def classify_multiple_chunks(self, chunks):
         """複数のチャンクを一括で分類"""
         results = []
         
@@ -130,7 +130,7 @@ class CategoryClassifier:
         
         return "\n".join(category_info)
 
-    def _extract_json_from_response(self, response_text: str) -> Dict[str, Any]:
+    def _extract_json_from_response(self, response_text: str) -> Dict:
         """レスポンスからJSONを抽出"""
         try:
             # JSONの開始と終了を探す
@@ -146,7 +146,7 @@ class CategoryClassifier:
         except json.JSONDecodeError as e:
             raise ValueError(f"JSONの解析に失敗しました: {str(e)}")
 
-    def _validate_classification(self, result: Dict[str, Any]) -> bool:
+    def _validate_classification(self, result) -> bool:
         """分類結果を検証"""
         required_fields = ["main_category", "sub_category", "confidence", "reasoning"]
         
