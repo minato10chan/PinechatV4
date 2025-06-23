@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 from openai import OpenAI
 from src.config.settings import OPENAI_API_KEY, METADATA_CATEGORIES
 import json
