@@ -7,6 +7,8 @@ import pandas as pd
 import json
 import traceback
 import io
+import re
+from typing import List, Dict, Any
 
 def read_file_content(file) -> str:
     """ファイルの内容を適切なエンコーディングで読み込む"""
@@ -99,6 +101,128 @@ def process_csv_file(file):
     except Exception as e:
         raise ValueError(f"CSVファイルの処理に失敗しました: {str(e)}")
 
+def manual_chunk_split(text: str, chunk_separators: str = "---") -> List[Dict[str, Any]]:
+    """手動でチャンクを分割"""
+    chunks = []
+    
+    # セパレータでテキストを分割
+    if chunk_separators:
+        # 複数のセパレータをサポート（改行で区切る）
+        separators = [sep.strip() for sep in chunk_separators.split('\n') if sep.strip()]
+        
+        # 最初のセパレータで分割
+        if separators:
+            parts = text.split(separators[0])
+        else:
+            parts = [text]
+    else:
+        parts = [text]
+    
+    # 各部分をチャンクとして処理
+    for i, part in enumerate(parts):
+        part = part.strip()
+        if part:  # 空でない部分のみをチャンクとして追加
+            chunks.append({
+                "id": f"manual_chunk_{i}_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                "text": part,
+                "metadata": {
+                    "chunk_type": "manual",
+                    "chunk_index": i
+                }
+            })
+    
+    return chunks
+
+def advanced_manual_chunk_split(text: str, chunk_separators: str = "---") -> List[Dict[str, Any]]:
+    """高度な手動チャンク分割（複数セパレータ対応）"""
+    chunks = []
+    
+    if not chunk_separators:
+        # セパレータがない場合は全体を1つのチャンクとして扱う
+        if text.strip():
+            chunks.append({
+                "id": f"manual_chunk_0_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                "text": text.strip(),
+                "metadata": {
+                    "chunk_type": "manual",
+                    "chunk_index": 0
+                }
+            })
+        return chunks
+    
+    # 複数のセパレータをサポート（改行で区切る）
+    separators = [sep.strip() for sep in chunk_separators.split('\n') if sep.strip()]
+    
+    if not separators:
+        # 有効なセパレータがない場合
+        if text.strip():
+            chunks.append({
+                "id": f"manual_chunk_0_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                "text": text.strip(),
+                "metadata": {
+                    "chunk_type": "manual",
+                    "chunk_index": 0
+                }
+            })
+        return chunks
+    
+    # 最初のセパレータで分割
+    parts = text.split(separators[0])
+    
+    # 各部分を処理
+    chunk_index = 0
+    for part in parts:
+        part = part.strip()
+        if not part:  # 空の部分はスキップ
+            continue
+        
+        # 追加のセパレータがある場合は、さらに分割を試みる
+        if len(separators) > 1:
+            sub_parts = []
+            current_part = part
+            
+            for sep in separators[1:]:
+                if sep in current_part:
+                    sub_parts.extend(current_part.split(sep))
+                    current_part = ""
+                    break
+                else:
+                    sub_parts = [current_part]
+                    break
+            
+            # サブパーツを処理
+            for sub_part in sub_parts:
+                sub_part = sub_part.strip()
+                if sub_part:  # 空でない部分のみをチャンクとして追加
+                    chunks.append({
+                        "id": f"manual_chunk_{chunk_index}_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                        "text": sub_part,
+                        "metadata": {
+                            "chunk_type": "manual",
+                            "chunk_index": chunk_index,
+                            "separators_used": separators
+                        }
+                    })
+                    chunk_index += 1
+        else:
+            # 単一セパレータの場合
+            chunks.append({
+                "id": f"manual_chunk_{chunk_index}_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                "text": part,
+                "metadata": {
+                    "chunk_type": "manual",
+                    "chunk_index": chunk_index,
+                    "separators_used": separators
+                }
+            })
+            chunk_index += 1
+    
+    return chunks
+
+def preview_chunks(text: str, chunk_separators: str = "---") -> List[Dict[str, Any]]:
+    """チャンク分割のプレビューを生成"""
+    return advanced_manual_chunk_split(text, chunk_separators)
+
 def render_file_upload(pinecone_service: PineconeService):
     """ファイルアップロード機能のUIを表示"""
     st.title("ファイルアップロード")
@@ -188,32 +312,214 @@ def render_file_upload(pinecone_service: PineconeService):
             # アップロード日（自動設定）
             upload_date = datetime.now()
             
-            if st.button("データベースに保存"):
-                try:
-                    with st.spinner("ファイルを処理中..."):
-                        file_content = read_file_content(uploaded_file)
-                        chunks = process_text_file(file_content, uploaded_file.name)
+            # チャンク分割方法の選択
+            st.subheader("📝 チャンク分割設定")
+            chunk_method = st.radio(
+                "チャンク分割方法を選択してください",
+                options=[
+                    ("auto", "🤖 自動分割（推奨）", "システムが自動的に文脈を考慮して分割します"),
+                    ("manual", "✏️ 手動分割", "自分でチャンクの境界を指定します")
+                ],
+                format_func=lambda x: x[1],
+                help="自動分割は文脈を考慮して適切に分割します。手動分割は自分で境界を指定できます。"
+            )
+            
+            # ファイル内容の読み込み
+            file_content = read_file_content(uploaded_file)
+            
+            if chunk_method[0] == "manual":
+                # 手動分割モード
+                st.markdown("### ✏️ 手動チャンク分割")
+                st.markdown("テキストを編集してチャンクの境界を指定してください。")
+                
+                # チャンクセパレータの設定
+                st.markdown("#### 📋 チャンクセパレータ")
+                st.markdown("チャンクを区切る文字列を指定してください。複数のセパレータを使用する場合は改行で区切ってください。")
+                
+                # よく使われるセパレータの例
+                with st.expander("💡 よく使われるセパレータの例", expanded=False):
+                    st.markdown("**基本的なセパレータ:**")
+                    st.code("---\n###\n##\n#")
+                    
+                    st.markdown("**段落区切り:**")
+                    st.code("\\n\\n\n---\n***")
+                    
+                    st.markdown("**見出し区切り:**")
+                    st.code("第1章\n第2章\n第3章\n\n1.\n2.\n3.")
+                    
+                    st.markdown("**カスタム区切り:**")
+                    st.code("【物件概要】\n【交通アクセス】\n【周辺環境】\n\n=== 物件情報 ===\n=== アクセス情報 ===")
+                    
+                    st.markdown("**使用方法:**")
+                    st.markdown("1. 上記の例から適切なセパレータをコピー")
+                    st.markdown("2. 下のテキストエリアに貼り付け")
+                    st.markdown("3. 必要に応じてカスタマイズ")
+                    st.markdown("4. テキスト内にセパレータを追加してチャンクを区切る")
+                
+                default_separators = "---\n###\n##"
+                chunk_separators = st.text_area(
+                    "チャンクセパレータ",
+                    value=default_separators,
+                    height=100,
+                    help="チャンクを区切る文字列を入力してください。複数のセパレータを使用する場合は改行で区切ってください。例：---, ###, ## など"
+                )
+                
+                # テキストエディタ
+                st.markdown("#### 📝 テキスト編集")
+                st.markdown("必要に応じてテキストを編集し、セパレータを追加してチャンクを区切ってください。")
+                
+                edited_text = st.text_area(
+                    "テキスト内容",
+                    value=file_content,
+                    height=400,
+                    help="テキストを編集してチャンクの境界を指定してください"
+                )
+                
+                # プレビューボタン
+                if st.button("👁️ チャンク分割をプレビュー"):
+                    st.markdown("#### 📋 チャンク分割プレビュー")
+                    
+                    # プレビューチャンクを生成
+                    preview_chunks_list = preview_chunks(edited_text, chunk_separators)
+                    
+                    if preview_chunks_list:
+                        st.success(f"✅ {len(preview_chunks_list)}個のチャンクに分割されました")
                         
-                        st.write(f"ファイルを{len(chunks)}個のチャンクに分割しました")
+                        # 統計情報を表示
+                        total_chars = sum(len(chunk['text']) for chunk in preview_chunks_list)
+                        avg_chars = total_chars // len(preview_chunks_list) if preview_chunks_list else 0
                         
-                        # メタデータを追加
-                        for chunk in chunks:
-                            chunk["metadata"] = {
-                                "main_category": main_category if main_category else "",
-                                "sub_category": sub_category if sub_category else "",
-                                "city": city if city else "",
-                                "created_date": created_date.isoformat() if created_date else "",
-                                "upload_date": upload_date.isoformat(),
-                                "source": source if source else "",
-                                "question_examples": all_question_examples
-                            }
-                            chunk["filename"] = uploaded_file.name
-                            chunk["chunk_id"] = chunk["id"]
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.metric("チャンク数", len(preview_chunks_list))
+                        with col2:
+                            st.metric("総文字数", total_chars)
+                        with col3:
+                            st.metric("平均文字数", avg_chars)
                         
-                        with st.spinner("Pineconeにアップロード中..."):
-                            pinecone_service.upload_chunks(chunks)
-                            st.success("アップロードが完了しました！")
-                except ValueError as e:
-                    st.error(str(e))
-                except Exception as e:
-                    st.error(f"エラーが発生しました: {str(e)}") 
+                        # 各チャンクを表示
+                        for i, chunk in enumerate(preview_chunks_list):
+                            with st.expander(f"📄 チャンク {i+1} (文字数: {len(chunk['text'])})", expanded=False):
+                                # チャンクの詳細情報
+                                st.markdown(f"**チャンクID:** {chunk['id']}")
+                                st.markdown(f"**文字数:** {len(chunk['text'])}文字")
+                                if 'separators_used' in chunk['metadata']:
+                                    st.markdown(f"**使用セパレータ:** {', '.join(chunk['metadata']['separators_used'])}")
+                                
+                                # チャンク内容の表示
+                                st.text_area(
+                                    f"チャンク {i+1} の内容",
+                                    value=chunk['text'],
+                                    height=200,
+                                    key=f"preview_chunk_{i}"
+                                )
+                        
+                        # 分割の品質チェック
+                        st.markdown("#### 🔍 分割品質チェック")
+                        
+                        # 短すぎるチャンクの警告
+                        short_chunks = [chunk for chunk in preview_chunks_list if len(chunk['text']) < 50]
+                        if short_chunks:
+                            st.warning(f"⚠️ {len(short_chunks)}個のチャンクが50文字未満です。内容が不十分な可能性があります。")
+                        
+                        # 長すぎるチャンクの警告
+                        long_chunks = [chunk for chunk in preview_chunks_list if len(chunk['text']) > 2000]
+                        if long_chunks:
+                            st.warning(f"⚠️ {len(long_chunks)}個のチャンクが2000文字を超えています。さらに分割することを検討してください。")
+                        
+                        # 推奨事項
+                        if not short_chunks and not long_chunks:
+                            st.success("✅ チャンク分割の品質は良好です。")
+                        
+                        # セパレータの使用状況
+                        st.markdown("#### 📊 セパレータ使用状況")
+                        separator_counts = {}
+                        for chunk in preview_chunks_list:
+                            if 'separators_used' in chunk['metadata']:
+                                for sep in chunk['metadata']['separators_used']:
+                                    separator_counts[sep] = separator_counts.get(sep, 0) + 1
+                        
+                        if separator_counts:
+                            for sep, count in separator_counts.items():
+                                st.markdown(f"- `{sep}`: {count}回使用")
+                        else:
+                            st.info("セパレータの使用状況は記録されていません。")
+                    else:
+                        st.warning("⚠️ チャンクが生成されませんでした。セパレータを確認してください。")
+                        
+                        # セパレータの確認を促す
+                        st.markdown("#### 💡 セパレータの確認")
+                        st.markdown("以下の点を確認してください：")
+                        st.markdown("1. セパレータが正しく入力されているか")
+                        st.markdown("2. テキスト内にセパレータが含まれているか")
+                        st.markdown("3. セパレータの前後に適切な改行があるか")
+                        
+                        # 現在のセパレータを表示
+                        st.markdown("**現在のセパレータ:**")
+                        st.code(chunk_separators)
+                
+                # 保存ボタン
+                if st.button("💾 データベースに保存（手動分割）"):
+                    try:
+                        with st.spinner("ファイルを処理中..."):
+                            # 手動分割でチャンクを生成
+                            chunks = advanced_manual_chunk_split(edited_text, chunk_separators)
+                            
+                            if not chunks:
+                                st.error("チャンクが生成されませんでした。セパレータを確認してください。")
+                                return
+                            
+                            st.write(f"ファイルを{len(chunks)}個のチャンクに分割しました")
+                            
+                            # メタデータを追加
+                            for chunk in chunks:
+                                chunk["metadata"].update({
+                                    "main_category": main_category if main_category else "",
+                                    "sub_category": sub_category if sub_category else "",
+                                    "city": city if city else "",
+                                    "created_date": created_date.isoformat() if created_date else "",
+                                    "upload_date": upload_date.isoformat(),
+                                    "source": source if source else "",
+                                    "question_examples": all_question_examples
+                                })
+                                chunk["filename"] = uploaded_file.name
+                                chunk["chunk_id"] = chunk["id"]
+                            
+                            with st.spinner("Pineconeにアップロード中..."):
+                                pinecone_service.upload_chunks(chunks)
+                                st.success("アップロードが完了しました！")
+                    except ValueError as e:
+                        st.error(str(e))
+                    except Exception as e:
+                        st.error(f"エラーが発生しました: {str(e)}")
+            
+            else:
+                # 自動分割モード（従来の処理）
+                if st.button("データベースに保存"):
+                    try:
+                        with st.spinner("ファイルを処理中..."):
+                            chunks = process_text_file(file_content, uploaded_file.name)
+                            
+                            st.write(f"ファイルを{len(chunks)}個のチャンクに分割しました")
+                            
+                            # メタデータを追加
+                            for chunk in chunks:
+                                chunk["metadata"] = {
+                                    "main_category": main_category if main_category else "",
+                                    "sub_category": sub_category if sub_category else "",
+                                    "city": city if city else "",
+                                    "created_date": created_date.isoformat() if created_date else "",
+                                    "upload_date": upload_date.isoformat(),
+                                    "source": source if source else "",
+                                    "question_examples": all_question_examples
+                                }
+                                chunk["filename"] = uploaded_file.name
+                                chunk["chunk_id"] = chunk["id"]
+                            
+                            with st.spinner("Pineconeにアップロード中..."):
+                                pinecone_service.upload_chunks(chunks)
+                                st.success("アップロードが完了しました！")
+                    except ValueError as e:
+                        st.error(str(e))
+                    except Exception as e:
+                        st.error(f"エラーが発生しました: {str(e)}") 
