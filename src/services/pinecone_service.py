@@ -146,8 +146,6 @@ class PineconeService:
                             "created_date": chunk.get("metadata", {}).get("created_date", ""),
                             "upload_date": chunk.get("metadata", {}).get("upload_date", ""),
                             "source": chunk.get("metadata", {}).get("source", ""),
-                            # 質問文例をメタデータに追加
-                            "question_examples": chunk.get("metadata", {}).get("question_examples", []),
                             # CSVファイルのメタデータ
                             "facility_name": chunk.get("metadata", {}).get("facility_name", ""),
                             "latitude": chunk.get("metadata", {}).get("latitude", 0.0),

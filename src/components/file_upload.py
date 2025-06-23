@@ -275,22 +275,6 @@ def render_file_upload(pinecone_service: PineconeService):
                 placeholder="ソース元を入力してください（任意）"
             )
             
-            # 質問文例の入力
-            st.subheader("質問文例")
-            st.write("このコンテンツに関連する質問文例を入力してください（検索時に優先されます）")
-            
-            # 質問文例の自由入力
-            question_examples = st.text_area(
-                "質問文例",
-                placeholder="このコンテンツに関連する質問文例を入力してください（1行に1つの質問）\n例：\nこの物件の完成時期はいつですか？\n最寄り駅までの距離は？\n周辺の学校について教えてください",
-                help="このコンテンツに関連する質問文例を1行に1つずつ入力してください。入力された質問文例は検索時に優先されます。"
-            )
-            
-            # 質問文例をリストに変換
-            all_question_examples = []
-            if question_examples.strip():
-                all_question_examples = [q.strip() for q in question_examples.split('\n') if q.strip()]
-            
             # アップロード日（自動設定）
             upload_date = datetime.now()
             
@@ -476,32 +460,7 @@ def render_file_upload(pinecone_service: PineconeService):
                             
                             # 変更の確認
                             if selected_main != current_main or selected_sub != current_sub:
-                                st.info("📝 カテゴリが手動で変更されました")
-                            
-                            # 質問文例設定セクション
-                            st.markdown("#### 💬 質問文例設定")
-                            st.markdown("このチャンクに関連する質問文例を入力してください（検索時に優先されます）")
-                            
-                            # 既存の質問文例を取得
-                            existing_examples = chunk.get('question_examples', [])
-                            existing_text = '\n'.join(existing_examples) if existing_examples else ''
-                            
-                            # 質問文例の入力
-                            question_examples_text = st.text_area(
-                                "質問文例",
-                                value=existing_text,
-                                placeholder="このチャンクに関連する質問文例を入力してください（1行に1つの質問）\n例：\nこの物件の完成時期はいつですか？\n最寄り駅までの距離は？\n周辺の学校について教えてください",
-                                height=100,
-                                key=f"question_examples_{i}",
-                                help="このチャンクに関連する質問文例を1行に1つずつ入力してください。入力された質問文例は検索時に優先されます。"
-                            )
-                            
-                            # 質問文例をリストに変換してチャンクに保存
-                            if question_examples_text.strip():
-                                chunk_question_examples = [q.strip() for q in question_examples_text.split('\n') if q.strip()]
-                                chunk['question_examples'] = chunk_question_examples
-                            else:
-                                chunk['question_examples'] = []
+                                st.info("✅ カテゴリが手動で変更されました")
                     
                     # 分割の品質チェック
                     st.markdown("#### 🔍 分割品質チェック")
@@ -572,8 +531,7 @@ def render_file_upload(pinecone_service: PineconeService):
                                 "city": city if city else "",
                                 "created_date": created_date.isoformat() if created_date else "",
                                 "upload_date": upload_date.isoformat(),
-                                "source": source if source else "",
-                                "question_examples": chunk.get('question_examples', [])  # チャンクごとの質問文例を使用
+                                "source": source if source else ""
                             }
                             
                             # カテゴリの設定（優先順位: 手動編集 > AI分類）
