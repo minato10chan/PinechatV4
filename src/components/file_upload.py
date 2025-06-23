@@ -350,10 +350,18 @@ def render_file_upload(pinecone_service: PineconeService):
             
             # プレビューボタン
             if st.button("👁️ チャンク分割をプレビュー"):
-                st.markdown("#### 📋 チャンク分割プレビュー")
-                
                 # プレビューチャンクを生成
                 preview_chunks_list = preview_chunks(edited_text, chunk_separators)
+                
+                # セッション状態に保存
+                st.session_state['preview_chunks'] = preview_chunks_list
+                st.session_state['show_preview'] = True
+            
+            # プレビューが表示されている場合
+            if st.session_state.get('show_preview', False) and 'preview_chunks' in st.session_state:
+                preview_chunks_list = st.session_state['preview_chunks']
+                
+                st.markdown("#### 📋 チャンク分割プレビュー")
                 
                 if preview_chunks_list:
                     st.success(f"✅ {len(preview_chunks_list)}個のチャンクに分割されました")
@@ -372,7 +380,7 @@ def render_file_upload(pinecone_service: PineconeService):
                     
                     # 各チャンクを表示
                     for i, chunk in enumerate(preview_chunks_list):
-                        with st.expander(f"📄 チャンク {i+1} (文字数: {len(chunk['text'])})", expanded=False):
+                        with st.expander(f"📄 チャンク {i+1} (文字数: {len(chunk['text'])})", expanded=True):
                             # チャンクの詳細情報
                             st.markdown(f"**チャンクID:** {chunk['id']}")
                             st.markdown(f"**文字数:** {len(chunk['text'])}文字")
@@ -469,6 +477,31 @@ def render_file_upload(pinecone_service: PineconeService):
                             # 変更の確認
                             if selected_main != current_main or selected_sub != current_sub:
                                 st.info("📝 カテゴリが手動で変更されました")
+                            
+                            # 質問文例設定セクション
+                            st.markdown("#### 💬 質問文例設定")
+                            st.markdown("このチャンクに関連する質問文例を入力してください（検索時に優先されます）")
+                            
+                            # 既存の質問文例を取得
+                            existing_examples = chunk.get('question_examples', [])
+                            existing_text = '\n'.join(existing_examples) if existing_examples else ''
+                            
+                            # 質問文例の入力
+                            question_examples_text = st.text_area(
+                                "質問文例",
+                                value=existing_text,
+                                placeholder="このチャンクに関連する質問文例を入力してください（1行に1つの質問）\n例：\nこの物件の完成時期はいつですか？\n最寄り駅までの距離は？\n周辺の学校について教えてください",
+                                height=100,
+                                key=f"question_examples_{i}",
+                                help="このチャンクに関連する質問文例を1行に1つずつ入力してください。入力された質問文例は検索時に優先されます。"
+                            )
+                            
+                            # 質問文例をリストに変換してチャンクに保存
+                            if question_examples_text.strip():
+                                chunk_question_examples = [q.strip() for q in question_examples_text.split('\n') if q.strip()]
+                                chunk['question_examples'] = chunk_question_examples
+                            else:
+                                chunk['question_examples'] = []
                     
                     # 分割の品質チェック
                     st.markdown("#### 🔍 分割品質チェック")
@@ -518,8 +551,11 @@ def render_file_upload(pinecone_service: PineconeService):
             if st.button("💾 データベースに保存"):
                 try:
                     with st.spinner("ファイルを処理中..."):
-                        # 手動分割でチャンクを生成
-                        chunks = advanced_manual_chunk_split(edited_text, chunk_separators)
+                        # セッション状態からチャンクを取得、ない場合は新しく生成
+                        if 'preview_chunks' in st.session_state:
+                            chunks = st.session_state['preview_chunks']
+                        else:
+                            chunks = advanced_manual_chunk_split(edited_text, chunk_separators)
                         
                         if not chunks:
                             st.error("チャンクが生成されませんでした。セパレータを確認してください。")
@@ -537,7 +573,7 @@ def render_file_upload(pinecone_service: PineconeService):
                                 "created_date": created_date.isoformat() if created_date else "",
                                 "upload_date": upload_date.isoformat(),
                                 "source": source if source else "",
-                                "question_examples": all_question_examples
+                                "question_examples": chunk.get('question_examples', [])  # チャンクごとの質問文例を使用
                             }
                             
                             # カテゴリの設定（優先順位: 手動編集 > AI分類）
@@ -564,6 +600,12 @@ def render_file_upload(pinecone_service: PineconeService):
                         with st.spinner("Pineconeにアップロード中..."):
                             pinecone_service.upload_chunks(chunks)
                             st.success("アップロードが完了しました！")
+                            
+                            # セッション状態をクリア
+                            if 'preview_chunks' in st.session_state:
+                                del st.session_state['preview_chunks']
+                            if 'show_preview' in st.session_state:
+                                del st.session_state['show_preview']
                 except ValueError as e:
                     st.error(str(e))
                 except Exception as e:
