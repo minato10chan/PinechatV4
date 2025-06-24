@@ -293,6 +293,8 @@ def render_file_upload(pinecone_service: PineconeService):
                 index=0,
                 help="データの更新頻度を選択してください"
             )
+            # タプルから文字列に変換
+            timestamp_type = timestamp_type[0] if isinstance(timestamp_type, tuple) else timestamp_type
             
             # 有効期間（テキスト入力）- 小さくする
             st.markdown("**📆 データの作成年度**")
@@ -525,6 +527,8 @@ def render_file_upload(pinecone_service: PineconeService):
                                 key=f"chunk_timestamp_type_{i}",
                                 help="このチャンクの更新頻度を選択してください"
                             )
+                            # タプルから文字列に変換
+                            chunk_timestamp_type = chunk_timestamp_type[0] if isinstance(chunk_timestamp_type, tuple) else chunk_timestamp_type
                             
                             # チャンク固有の位置情報
                             st.markdown("**📍 このチャンクの位置情報**")
