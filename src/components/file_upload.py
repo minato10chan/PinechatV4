@@ -254,6 +254,14 @@ def render_file_upload(pinecone_service: PineconeService):
             # テキストファイルの場合はメタデータ入力フォームを表示
             st.subheader("メタデータ入力")
             
+            # 市区町村の選択
+            city = st.selectbox(
+                "市区町村",
+                METADATA_CATEGORIES["市区町村"],
+                index=None,
+                placeholder="市区町村を選択してください（任意）"
+            )
+            
             # データ作成日の選択（デフォルトで当日、表示非表示）
             created_date = datetime.now().date()
             
@@ -286,18 +294,17 @@ def render_file_upload(pinecone_service: PineconeService):
                 help="データの更新頻度を選択してください"
             )
             
-            # 有効期間（テキスト入力）
+            # 有効期間（テキスト入力）- 小さくする
             st.markdown("**📆 データの作成年度**")
             st.markdown("このデータの作成年度を入力してください（例：令和6年度、複数可）")
             
-            valid_for_text = st.text_area(
+            valid_for_text = st.text_input(
                 "作成年度",
                 value="令和6年度",
-                placeholder="作成年度を入力してください（1行に1つの年度）\n例：\n令和6年度\n令和5年度\n2024年度",
-                height=100,
-                help="このデータの作成年度を1行に1つずつ入力してください"
+                placeholder="作成年度を入力してください（例：令和6年度、令和5年度、2024年度）",
+                help="このデータの作成年度を入力してください（複数の場合はカンマ区切り）"
             )
-            selected_periods = [p.strip() for p in valid_for_text.split('\n') if p.strip()] if valid_for_text.strip() else []
+            selected_periods = [p.strip() for p in valid_for_text.split(',') if p.strip()] if valid_for_text.strip() else []
             
             # アップロード日（自動設定）
             upload_date = datetime.now()
@@ -519,20 +526,6 @@ def render_file_upload(pinecone_service: PineconeService):
                                 help="このチャンクの更新頻度を選択してください"
                             )
                             
-                            # チャンク固有の有効期間（テキスト入力）
-                            st.markdown("**📆 このチャンクの作成年度**")
-                            st.markdown("作成年度を入力してください（例：令和6年度、複数可）")
-                            
-                            chunk_valid_for_text = st.text_area(
-                                "作成年度",
-                                value='\n'.join(chunk.get('chunk_valid_for', selected_periods)),
-                                placeholder="作成年度を入力してください（1行に1つの年度）\n例：\n令和6年度\n令和5年度\n2024年度",
-                                height=100,
-                                key=f"chunk_valid_for_{i}",
-                                help="このチャンクの作成年度を1行に1つずつ入力してください"
-                            )
-                            chunk_selected_periods = [p.strip() for p in chunk_valid_for_text.split('\n') if p.strip()] if chunk_valid_for_text.strip() else []
-                            
                             # チャンク固有の位置情報
                             st.markdown("**📍 このチャンクの位置情報**")
                             
@@ -581,7 +574,6 @@ def render_file_upload(pinecone_service: PineconeService):
                             # チャンク固有の設定を保存
                             chunk['chunk_verified'] = chunk_verified
                             chunk['chunk_timestamp_type'] = chunk_timestamp_type
-                            chunk['chunk_valid_for'] = chunk_selected_periods
                             chunk['chunk_location'] = {
                                 'latitude': chunk_latitude,
                                 'longitude': chunk_longitude,
@@ -690,21 +682,20 @@ def render_file_upload(pinecone_service: PineconeService):
                             st.write(f"  - 質問例: {chunk.get('question_examples', [])}")
                             st.write(f"  - 検証済み: {chunk.get('chunk_verified', verified)}")
                             st.write(f"  - 更新タイプ: {chunk.get('chunk_timestamp_type', timestamp_type)}")
-                            st.write(f"  - 作成年度: {chunk.get('chunk_valid_for', selected_periods)}")
                             st.write(f"  - 位置情報: 緯度{chunk.get('chunk_location', {}).get('latitude', None)}, 経度{chunk.get('chunk_location', {}).get('longitude', None)}, 住所{chunk.get('chunk_location', {}).get('address', '')}")
                             
                             # 基本メタデータ
                             metadata = {
                                 "main_category": "",
                                 "sub_category": "",
-                                "city": chunk.get('metadata', {}).get('city', ""),
+                                "city": city if city else "",
                                 "created_date": created_date.isoformat() if created_date else "",
                                 "upload_date": upload_date.isoformat(),
                                 "source": source if source else "",
                                 "question_examples": chunk.get('question_examples', []),
                                 "verified": chunk.get('chunk_verified', verified),
                                 "timestamp_type": chunk.get('chunk_timestamp_type', timestamp_type),
-                                "valid_for": chunk.get('chunk_valid_for', selected_periods if selected_periods else []),
+                                "valid_for": selected_periods if selected_periods else [],
                                 "location": chunk.get('chunk_location', {
                                     "latitude": chunk.get('chunk_location', {}).get('latitude', None),
                                     "longitude": chunk.get('chunk_location', {}).get('longitude', None),
