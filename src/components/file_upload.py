@@ -399,7 +399,29 @@ def render_file_upload(pinecone_service: PineconeService):
                     
                     # 各チャンクを表示
                     for i, chunk in enumerate(preview_chunks_list):
-                        with st.expander(f"📄 チャンク {i+1} (文字数: {len(chunk['text'])})", expanded=True):
+                        # チャンクの概要情報を作成
+                        chunk_summary = f"📄 チャンク {i+1}"
+                        if 'ai_classification' in chunk:
+                            ai_result = chunk['ai_classification']
+                            main_cat = ai_result.get('main_category', '未分類')
+                            sub_cat = ai_result.get('sub_category', '未分類')
+                            chunk_summary += f" | 🏷️ {main_cat}/{sub_cat}"
+                        elif 'manual_main_category' in chunk and chunk['manual_main_category']:
+                            chunk_summary += f" | 🏷️ {chunk['manual_main_category']}/{chunk.get('manual_sub_category', '')}"
+                        else:
+                            chunk_summary += " | 🏷️ 未分類"
+                        
+                        chunk_summary += f" | 📝 {len(chunk['text'])}文字"
+                        
+                        # 位置情報がある場合は表示
+                        if chunk.get('chunk_location', {}).get('latitude') is not None:
+                            chunk_summary += " | 📍 位置情報あり"
+                        
+                        # 質問例がある場合は表示
+                        if chunk.get('question_examples'):
+                            chunk_summary += f" | 💬 {len(chunk['question_examples'])}個の質問例"
+                        
+                        with st.expander(chunk_summary, expanded=False):
                             # チャンクの詳細情報
                             st.markdown(f"**チャンクID:** {chunk['id']}")
                             st.markdown(f"**文字数:** {len(chunk['text'])}文字")
