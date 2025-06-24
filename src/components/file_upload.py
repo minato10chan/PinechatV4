@@ -285,57 +285,31 @@ def render_file_upload(pinecone_service: PineconeService):
                 help="このデータが検証済みであることを示します"
             )
             
-            # タイムスタンプタイプ
-            timestamp_type = st.selectbox(
+            # タイムスタンプタイプ（ラジオボタン）
+            timestamp_type = st.radio(
                 "📅 データ更新タイプ",
                 options=[
+                    ("fixed", "固定データ"),
                     ("yearly", "年次更新"),
-                    ("monthly", "月次更新"),
-                    ("quarterly", "四半期更新"),
-                    ("daily", "日次更新"),
-                    ("on_demand", "随時更新"),
-                    ("static", "静的データ")
+                    ("dated", "日付指定")
                 ],
                 format_func=lambda x: x[1],
                 index=0,
                 help="データの更新頻度を選択してください"
             )
             
-            # 有効期間
+            # 有効期間（テキスト入力）
             st.markdown("**📆 有効期間**")
-            st.markdown("このデータが有効な期間を選択または入力してください")
+            st.markdown("このデータが有効な期間を入力してください（例：令和6年度、複数可）")
             
-            valid_periods = [
-                "令和6年度",
-                "令和5年度", 
-                "令和4年度",
-                "令和3年度",
-                "令和2年度",
-                "令和元年",
-                "平成31年度",
-                "平成30年度"
-            ]
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                use_preset = st.checkbox("プリセットから選択", value=True)
-            
-            with col2:
-                if use_preset:
-                    selected_periods = st.multiselect(
-                        "有効期間を選択",
-                        options=valid_periods,
-                        default=["令和6年度"],
-                        help="複数選択可能です"
-                    )
-                else:
-                    custom_periods = st.text_area(
-                        "有効期間を手動入力",
-                        placeholder="1行に1つの期間を入力してください\n例：\n令和6年度\n2024年度\n2024年4月〜2025年3月",
-                        height=100,
-                        help="カスタムの有効期間を1行に1つずつ入力してください"
-                    )
-                    selected_periods = [p.strip() for p in custom_periods.split('\n') if p.strip()] if custom_periods.strip() else []
+            valid_for_text = st.text_area(
+                "有効期間",
+                value="令和6年度",
+                placeholder="有効期間を入力してください（1行に1つの期間）\n例：\n令和6年度\n令和5年度\n2024年度",
+                height=100,
+                help="このデータが有効な期間を1行に1つずつ入力してください"
+            )
+            selected_periods = [p.strip() for p in valid_for_text.split('\n') if p.strip()] if valid_for_text.strip() else []
             
             # 位置情報
             st.markdown("#### 📍 位置情報設定")
@@ -585,54 +559,34 @@ def render_file_upload(pinecone_service: PineconeService):
                                 help="このチャンクが検証済みであることを示します"
                             )
                             
-                            # チャンク固有のタイムスタンプタイプ
-                            chunk_timestamp_type = st.selectbox(
+                            # チャンク固有のタイムスタンプタイプ（ラジオボタン）
+                            chunk_timestamp_type = st.radio(
                                 "📅 このチャンクの更新タイプ",
                                 options=[
+                                    ("fixed", "固定データ"),
                                     ("yearly", "年次更新"),
-                                    ("monthly", "月次更新"),
-                                    ("quarterly", "四半期更新"),
-                                    ("daily", "日次更新"),
-                                    ("on_demand", "随時更新"),
-                                    ("static", "静的データ")
+                                    ("dated", "日付指定")
                                 ],
                                 format_func=lambda x: x[1],
-                                index=0 if chunk.get('chunk_timestamp_type', timestamp_type) == "yearly" else 
-                                      1 if chunk.get('chunk_timestamp_type', timestamp_type) == "monthly" else
-                                      2 if chunk.get('chunk_timestamp_type', timestamp_type) == "quarterly" else
-                                      3 if chunk.get('chunk_timestamp_type', timestamp_type) == "daily" else
-                                      4 if chunk.get('chunk_timestamp_type', timestamp_type) == "on_demand" else 5,
+                                index=0 if chunk.get('chunk_timestamp_type', timestamp_type) == "fixed" else 
+                                      1 if chunk.get('chunk_timestamp_type', timestamp_type) == "yearly" else 2,
                                 key=f"chunk_timestamp_type_{i}",
                                 help="このチャンクの更新頻度を選択してください"
                             )
                             
-                            # チャンク固有の有効期間
+                            # チャンク固有の有効期間（テキスト入力）
                             st.markdown("**📆 このチャンクの有効期間**")
+                            st.markdown("有効期間を入力してください（例：令和6年度、複数可）")
                             
-                            chunk_use_preset = st.checkbox(
-                                "プリセットから選択", 
-                                value=chunk.get('chunk_use_preset', True),
-                                key=f"chunk_use_preset_{i}"
+                            chunk_valid_for_text = st.text_area(
+                                "有効期間",
+                                value='\n'.join(chunk.get('chunk_valid_for', selected_periods)),
+                                placeholder="有効期間を入力してください（1行に1つの期間）\n例：\n令和6年度\n令和5年度\n2024年度",
+                                height=100,
+                                key=f"chunk_valid_for_{i}",
+                                help="このチャンクが有効な期間を1行に1つずつ入力してください"
                             )
-                            
-                            if chunk_use_preset:
-                                chunk_selected_periods = st.multiselect(
-                                    "有効期間を選択",
-                                    options=valid_periods,
-                                    default=chunk.get('chunk_valid_for', selected_periods),
-                                    key=f"chunk_valid_for_{i}",
-                                    help="複数選択可能です"
-                                )
-                            else:
-                                chunk_custom_periods = st.text_area(
-                                    "有効期間を手動入力",
-                                    value='\n'.join(chunk.get('chunk_valid_for', selected_periods)),
-                                    placeholder="1行に1つの期間を入力してください\n例：\n令和6年度\n2024年度\n2024年4月〜2025年3月",
-                                    height=100,
-                                    key=f"chunk_custom_periods_{i}",
-                                    help="カスタムの有効期間を1行に1つずつ入力してください"
-                                )
-                                chunk_selected_periods = [p.strip() for p in chunk_custom_periods.split('\n') if p.strip()] if chunk_custom_periods.strip() else []
+                            chunk_selected_periods = [p.strip() for p in chunk_valid_for_text.split('\n') if p.strip()] if chunk_valid_for_text.strip() else []
                             
                             # チャンク固有の位置情報
                             st.markdown("**📍 このチャンクの位置情報**")
@@ -688,7 +642,6 @@ def render_file_upload(pinecone_service: PineconeService):
                                 'longitude': chunk_longitude,
                                 'address': chunk_address
                             }
-                            chunk['chunk_use_preset'] = chunk_use_preset
                             
                             # セッション状態を即座に更新
                             st.session_state['preview_chunks'] = preview_chunks_list
