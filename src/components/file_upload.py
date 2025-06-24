@@ -422,7 +422,22 @@ def render_file_upload(pinecone_service: PineconeService):
                         if chunk.get('question_examples'):
                             chunk_summary += f" | 💬 {len(chunk['question_examples'])}個の質問例"
                         
-                        with st.expander(chunk_summary, expanded=False):
+                        # セッション状態で開閉状態を管理
+                        expander_key = f"chunk_expander_{i}"
+                        if expander_key not in st.session_state:
+                            st.session_state[expander_key] = False
+                        
+                        # 質問例生成やAI分類が実行された場合は開いた状態にする
+                        if (f"generate_questions_{i}" in st.session_state and st.session_state[f"generate_questions_{i}"]) or \
+                           (f"improve_questions_{i}" in st.session_state and st.session_state[f"improve_questions_{i}"]) or \
+                           (f"ai_classify_{i}" in st.session_state and st.session_state[f"ai_classify_{i}"]):
+                            st.session_state[expander_key] = True
+                            # ボタンの状態をリセット
+                            st.session_state[f"generate_questions_{i}"] = False
+                            st.session_state[f"improve_questions_{i}"] = False
+                            st.session_state[f"ai_classify_{i}"] = False
+                        
+                        with st.expander(chunk_summary, expanded=st.session_state[expander_key]):
                             # チャンクの詳細情報
                             st.markdown(f"**チャンクID:** {chunk['id']}")
                             st.markdown(f"**文字数:** {len(chunk['text'])}文字")
@@ -445,6 +460,10 @@ def render_file_upload(pinecone_service: PineconeService):
                             
                             # AI分類ボタン（チャンクごと）
                             if st.button(f"🤖 AIでカテゴリを自動判定", key=f"ai_classify_{i}"):
+                                # セッション状態を設定してexpanderを開いた状態にする
+                                st.session_state[f"ai_classify_{i}"] = True
+                                st.session_state[f"chunk_expander_{i}"] = True
+                                
                                 try:
                                     with st.spinner(f"チャンク {i+1} を分析中..."):
                                         # AI分類を実行
@@ -601,6 +620,10 @@ def render_file_upload(pinecone_service: PineconeService):
                             col1, col2 = st.columns(2)
                             with col1:
                                 if st.button(f"🤖 AIで質問例を生成", key=f"generate_questions_{i}"):
+                                    # セッション状態を設定してexpanderを開いた状態にする
+                                    st.session_state[f"generate_questions_{i}"] = True
+                                    st.session_state[f"chunk_expander_{i}"] = True
+                                    
                                     try:
                                         with st.spinner(f"チャンク {i+1} の質問例を生成中..."):
                                             # カテゴリ情報を取得
@@ -639,6 +662,10 @@ def render_file_upload(pinecone_service: PineconeService):
                             with col2:
                                 if existing_examples:
                                     if st.button(f"🔧 既存の質問例を改善", key=f"improve_questions_{i}"):
+                                        # セッション状態を設定してexpanderを開いた状態にする
+                                        st.session_state[f"improve_questions_{i}"] = True
+                                        st.session_state[f"chunk_expander_{i}"] = True
+                                        
                                         try:
                                             with st.spinner(f"チャンク {i+1} の質問例を改善中..."):
                                                 # カテゴリ情報を取得
@@ -705,9 +732,6 @@ def render_file_upload(pinecone_service: PineconeService):
                                         st.write(f"{j}. {question}")
                             else:
                                 st.info("ℹ️ 質問例が設定されていません。AI生成ボタンを使用して質問例を生成してください。")
-                            
-                            # セッション状態を即座に更新
-                            st.session_state['preview_chunks'] = preview_chunks_list
                     
                     # 分割の品質チェック
                     st.markdown("#### 🔍 分割品質チェック")

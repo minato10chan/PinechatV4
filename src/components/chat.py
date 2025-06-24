@@ -292,9 +292,6 @@ def render_chat(pinecone_service: PineconeService):
                                 st.markdown("**参照文脈の詳細**")
                                 for i, detail in enumerate(sent_text["参照文脈の詳細"], 1):
                                     st.markdown(f"**参照 {i}**")
-                                    st.write(f"ファイル名: {detail['ファイル名']}")
-                                    st.write(f"ページ番号: {detail['ページ番号']}")
-                                    st.write(f"セクション: {detail['セクション']}")
                                     
                                     # 高度な検索の結果を表示
                                     if "スコア" in detail:
