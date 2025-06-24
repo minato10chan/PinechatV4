@@ -508,31 +508,6 @@ def render_file_upload(pinecone_service: PineconeService):
                             st.markdown("#### 🔧 チャンク固有設定")
                             st.markdown("このチャンクに特有の設定を行います")
                             
-                            # チャンク固有の検証済みフラグ
-                            chunk_verified = st.checkbox(
-                                "✅ このチャンクは検証済み",
-                                value=chunk.get('chunk_verified', verified),  # デフォルトは全体設定を使用
-                                key=f"chunk_verified_{i}",
-                                help="このチャンクが検証済みであることを示します"
-                            )
-                            
-                            # チャンク固有のタイムスタンプタイプ（ラジオボタン）
-                            chunk_timestamp_type = st.radio(
-                                "📅 このチャンクの更新タイプ",
-                                options=[
-                                    ("fixed", "固定データ"),
-                                    ("yearly", "年次更新"),
-                                    ("dated", "日付指定")
-                                ],
-                                format_func=lambda x: x[1],
-                                index=0 if chunk.get('chunk_timestamp_type', timestamp_type) == "fixed" else 
-                                      1 if chunk.get('chunk_timestamp_type', timestamp_type) == "yearly" else 2,
-                                key=f"chunk_timestamp_type_{i}",
-                                help="このチャンクの更新頻度を選択してください"
-                            )
-                            # タプルから文字列に変換
-                            chunk_timestamp_type = chunk_timestamp_type[0] if isinstance(chunk_timestamp_type, tuple) else chunk_timestamp_type
-                            
                             # チャンク固有の位置情報
                             st.markdown("**📍 このチャンクの位置情報**")
                             
@@ -579,8 +554,6 @@ def render_file_upload(pinecone_service: PineconeService):
                                     st.info("ℹ️ 位置情報は任意です。必要に応じて入力してください。")
                             
                             # チャンク固有の設定を保存
-                            chunk['chunk_verified'] = chunk_verified
-                            chunk['chunk_timestamp_type'] = chunk_timestamp_type
                             chunk['chunk_location'] = {
                                 'latitude': chunk_latitude,
                                 'longitude': chunk_longitude,
@@ -687,8 +660,8 @@ def render_file_upload(pinecone_service: PineconeService):
                             st.write(f"  - 手動カテゴリ: {chunk.get('manual_main_category', 'なし')} / {chunk.get('manual_sub_category', 'なし')}")
                             st.write(f"  - AI分類: {chunk.get('ai_classification', 'なし')}")
                             st.write(f"  - 質問例: {chunk.get('question_examples', [])}")
-                            st.write(f"  - 検証済み: {chunk.get('chunk_verified', verified)}")
-                            st.write(f"  - 更新タイプ: {chunk.get('chunk_timestamp_type', timestamp_type)}")
+                            st.write(f"  - 検証済み: {verified}")
+                            st.write(f"  - 更新タイプ: {timestamp_type}")
                             st.write(f"  - 位置情報: 緯度{chunk.get('chunk_location', {}).get('latitude', None)}, 経度{chunk.get('chunk_location', {}).get('longitude', None)}, 住所{chunk.get('chunk_location', {}).get('address', '')}")
                             
                             # 基本メタデータ
@@ -700,8 +673,8 @@ def render_file_upload(pinecone_service: PineconeService):
                                 "upload_date": upload_date.isoformat(),
                                 "source": source if source else "",
                                 "question_examples": chunk.get('question_examples', []),
-                                "verified": chunk.get('chunk_verified', verified),
-                                "timestamp_type": chunk.get('chunk_timestamp_type', timestamp_type),
+                                "verified": verified,
+                                "timestamp_type": timestamp_type,
                                 "valid_for": selected_periods if selected_periods else [],
                                 "latitude": chunk.get('chunk_location', {}).get('latitude') if chunk.get('chunk_location', {}).get('latitude') is not None else 0.0,
                                 "longitude": chunk.get('chunk_location', {}).get('longitude') if chunk.get('chunk_location', {}).get('longitude') is not None else 0.0,
