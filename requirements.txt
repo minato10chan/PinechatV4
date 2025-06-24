@@ -11,3 +11,4 @@ janome==0.5.0  # 日本語の形態素解析ライブラリ
 langsmith>=0.0.69  # LangSmith for tracing and monitoring
 tiktoken>=0.5.0  # OpenAIのトークンカウンター
 python-dotenv>=1.0.0  # 環境変数の管理
+pandas>=2.0.0  # データ処理ライブラリ
