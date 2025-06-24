@@ -254,20 +254,8 @@ def render_file_upload(pinecone_service: PineconeService):
             # テキストファイルの場合はメタデータ入力フォームを表示
             st.subheader("メタデータ入力")
             
-            # 市区町村の選択
-            city = st.selectbox(
-                "市区町村",
-                METADATA_CATEGORIES["市区町村"],
-                index=None,
-                placeholder="市区町村を選択してください（任意）"
-            )
-            
-            # データ作成日の選択
-            created_date = st.date_input(
-                "データ作成日",
-                value=None,
-                format="YYYY/MM/DD"
-            )
+            # データ作成日の選択（デフォルトで当日、表示非表示）
+            created_date = datetime.now().date()
             
             # ソース元の入力
             source = st.text_input(
@@ -310,49 +298,6 @@ def render_file_upload(pinecone_service: PineconeService):
                 help="このデータの作成年度を1行に1つずつ入力してください"
             )
             selected_periods = [p.strip() for p in valid_for_text.split('\n') if p.strip()] if valid_for_text.strip() else []
-            
-            # 位置情報
-            st.markdown("#### 📍 位置情報設定")
-            st.markdown("データに関連する位置情報を設定してください")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                latitude = st.number_input(
-                    "緯度",
-                    min_value=-90.0,
-                    max_value=90.0,
-                    value=35.9056,
-                    step=0.0001,
-                    format="%.4f",
-                    help="緯度を入力してください（例：35.9056）"
-                )
-                
-                longitude = st.number_input(
-                    "経度",
-                    min_value=-180.0,
-                    max_value=180.0,
-                    value=139.4852,
-                    step=0.0001,
-                    format="%.4f",
-                    help="経度を入力してください（例：139.4852）"
-                )
-            
-            with col2:
-                address = st.text_input(
-                    "住所",
-                    value="埼玉県川越市富士見町15-1",
-                    placeholder="住所を入力してください",
-                    help="詳細な住所を入力してください"
-                )
-                
-                # 位置情報の検証
-                if latitude != 0.0 and longitude != 0.0:
-                    st.success(f"✅ 位置情報が設定されています")
-                    st.write(f"緯度: {latitude}, 経度: {longitude}")
-                    if address:
-                        st.write(f"住所: {address}")
-                else:
-                    st.warning("⚠️ 位置情報が設定されていません")
             
             # アップロード日（自動設定）
             upload_date = datetime.now()
@@ -597,7 +542,7 @@ def render_file_upload(pinecone_service: PineconeService):
                                     "緯度",
                                     min_value=-90.0,
                                     max_value=90.0,
-                                    value=chunk.get('chunk_location', {}).get('latitude', latitude),
+                                    value=chunk.get('chunk_location', {}).get('latitude', None),
                                     step=0.0001,
                                     format="%.4f",
                                     key=f"chunk_latitude_{i}",
@@ -608,7 +553,7 @@ def render_file_upload(pinecone_service: PineconeService):
                                     "経度",
                                     min_value=-180.0,
                                     max_value=180.0,
-                                    value=chunk.get('chunk_location', {}).get('longitude', longitude),
+                                    value=chunk.get('chunk_location', {}).get('longitude', None),
                                     step=0.0001,
                                     format="%.4f",
                                     key=f"chunk_longitude_{i}",
@@ -618,20 +563,20 @@ def render_file_upload(pinecone_service: PineconeService):
                             with col2:
                                 chunk_address = st.text_input(
                                     "住所",
-                                    value=chunk.get('chunk_location', {}).get('address', address),
-                                    placeholder="住所を入力してください",
+                                    value=chunk.get('chunk_location', {}).get('address', ""),
+                                    placeholder="住所を入力してください（任意）",
                                     key=f"chunk_address_{i}",
                                     help="詳細な住所を入力してください"
                                 )
                                 
                                 # チャンク固有の位置情報の検証
-                                if chunk_latitude != 0.0 and chunk_longitude != 0.0:
+                                if chunk_latitude is not None and chunk_longitude is not None:
                                     st.success(f"✅ 位置情報が設定されています")
                                     st.write(f"緯度: {chunk_latitude}, 経度: {chunk_longitude}")
                                     if chunk_address:
                                         st.write(f"住所: {chunk_address}")
                                 else:
-                                    st.warning("⚠️ 位置情報が設定されていません")
+                                    st.info("ℹ️ 位置情報は任意です。必要に応じて入力してください。")
                             
                             # チャンク固有の設定を保存
                             chunk['chunk_verified'] = chunk_verified
@@ -746,13 +691,13 @@ def render_file_upload(pinecone_service: PineconeService):
                             st.write(f"  - 検証済み: {chunk.get('chunk_verified', verified)}")
                             st.write(f"  - 更新タイプ: {chunk.get('chunk_timestamp_type', timestamp_type)}")
                             st.write(f"  - 作成年度: {chunk.get('chunk_valid_for', selected_periods)}")
-                            st.write(f"  - 位置情報: 緯度{chunk.get('chunk_location', {}).get('latitude', latitude)}, 経度{chunk.get('chunk_location', {}).get('longitude', longitude)}, 住所{chunk.get('chunk_location', {}).get('address', address)}")
+                            st.write(f"  - 位置情報: 緯度{chunk.get('chunk_location', {}).get('latitude', None)}, 経度{chunk.get('chunk_location', {}).get('longitude', None)}, 住所{chunk.get('chunk_location', {}).get('address', '')}")
                             
                             # 基本メタデータ
                             metadata = {
                                 "main_category": "",
                                 "sub_category": "",
-                                "city": city if city else "",
+                                "city": chunk.get('metadata', {}).get('city', ""),
                                 "created_date": created_date.isoformat() if created_date else "",
                                 "upload_date": upload_date.isoformat(),
                                 "source": source if source else "",
@@ -761,9 +706,9 @@ def render_file_upload(pinecone_service: PineconeService):
                                 "timestamp_type": chunk.get('chunk_timestamp_type', timestamp_type),
                                 "valid_for": chunk.get('chunk_valid_for', selected_periods if selected_periods else []),
                                 "location": chunk.get('chunk_location', {
-                                    "latitude": latitude,
-                                    "longitude": longitude,
-                                    "address": address
+                                    "latitude": chunk.get('chunk_location', {}).get('latitude', None),
+                                    "longitude": chunk.get('chunk_location', {}).get('longitude', None),
+                                    "address": chunk.get('chunk_location', {}).get('address', '')
                                 })
                             }
                             
