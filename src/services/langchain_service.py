@@ -172,7 +172,12 @@ class LangChainService:
                 "ページ番号": match.metadata.get("page", "不明"),
                 "セクション": match.metadata.get("section", "不明"),
                 "クエリバリエーション": getattr(match, 'query_variation', 'unknown'),
-                "クエリ順序": getattr(match, 'query_index', 0)
+                "クエリ順序": getattr(match, 'query_index', 0),
+                "質問例": match.metadata.get("question_examples", []),
+                "検証済み": match.metadata.get("verified", False),
+                "更新タイプ": match.metadata.get("timestamp_type", "static"),
+                "有効期間": match.metadata.get("valid_for", []),
+                "位置情報": match.metadata.get("location", {})
             }
             search_details.append(detail)
         
@@ -257,7 +262,12 @@ class LangChainService:
                 "メタデータ": doc["metadata"],
                 "ファイル名": doc["metadata"].get("source", "不明"),
                 "ページ番号": doc["metadata"].get("page", "不明"),
-                "セクション": doc["metadata"].get("section", "不明")
+                "セクション": doc["metadata"].get("section", "不明"),
+                "質問例": doc["metadata"].get("question_examples", []),
+                "検証済み": doc["metadata"].get("verified", False),
+                "更新タイプ": doc["metadata"].get("timestamp_type", "static"),
+                "有効期間": doc["metadata"].get("valid_for", []),
+                "位置情報": doc["metadata"].get("location", {})
             }
             search_details.append(detail)
         

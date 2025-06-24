@@ -12,7 +12,7 @@ from src.services.pinecone_service import PineconeService
 from src.components.file_upload import render_file_upload
 from src.components.chat import render_chat
 from src.components.settings import render_settings
-from src.components.agent import render_agent
+#from src.components.agent import render_agent
 from src.components.property_upload import render_property_upload
 from src.config.settings import DEFAULT_SYSTEM_PROMPT, DEFAULT_RESPONSE_TEMPLATE
 import os

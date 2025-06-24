@@ -275,6 +275,111 @@ def render_file_upload(pinecone_service: PineconeService):
                 placeholder="ソース元を入力してください（任意）"
             )
             
+            # データ検証状況
+            st.markdown("#### 📋 データ検証・有効性設定")
+            
+            # 検証済みフラグ
+            verified = st.checkbox(
+                "✅ データ検証済み",
+                value=False,
+                help="このデータが検証済みであることを示します"
+            )
+            
+            # タイムスタンプタイプ
+            timestamp_type = st.selectbox(
+                "📅 データ更新タイプ",
+                options=[
+                    ("yearly", "年次更新"),
+                    ("monthly", "月次更新"),
+                    ("quarterly", "四半期更新"),
+                    ("daily", "日次更新"),
+                    ("on_demand", "随時更新"),
+                    ("static", "静的データ")
+                ],
+                format_func=lambda x: x[1],
+                index=0,
+                help="データの更新頻度を選択してください"
+            )
+            
+            # 有効期間
+            st.markdown("**📆 有効期間**")
+            st.markdown("このデータが有効な期間を選択または入力してください")
+            
+            valid_periods = [
+                "令和6年度",
+                "令和5年度", 
+                "令和4年度",
+                "令和3年度",
+                "令和2年度",
+                "令和元年",
+                "平成31年度",
+                "平成30年度"
+            ]
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                use_preset = st.checkbox("プリセットから選択", value=True)
+            
+            with col2:
+                if use_preset:
+                    selected_periods = st.multiselect(
+                        "有効期間を選択",
+                        options=valid_periods,
+                        default=["令和6年度"],
+                        help="複数選択可能です"
+                    )
+                else:
+                    custom_periods = st.text_area(
+                        "有効期間を手動入力",
+                        placeholder="1行に1つの期間を入力してください\n例：\n令和6年度\n2024年度\n2024年4月〜2025年3月",
+                        height=100,
+                        help="カスタムの有効期間を1行に1つずつ入力してください"
+                    )
+                    selected_periods = [p.strip() for p in custom_periods.split('\n') if p.strip()] if custom_periods.strip() else []
+            
+            # 位置情報
+            st.markdown("#### 📍 位置情報設定")
+            st.markdown("データに関連する位置情報を設定してください")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                latitude = st.number_input(
+                    "緯度",
+                    min_value=-90.0,
+                    max_value=90.0,
+                    value=35.9056,
+                    step=0.0001,
+                    format="%.4f",
+                    help="緯度を入力してください（例：35.9056）"
+                )
+                
+                longitude = st.number_input(
+                    "経度",
+                    min_value=-180.0,
+                    max_value=180.0,
+                    value=139.4852,
+                    step=0.0001,
+                    format="%.4f",
+                    help="経度を入力してください（例：139.4852）"
+                )
+            
+            with col2:
+                address = st.text_input(
+                    "住所",
+                    value="埼玉県川越市富士見町15-1",
+                    placeholder="住所を入力してください",
+                    help="詳細な住所を入力してください"
+                )
+                
+                # 位置情報の検証
+                if latitude != 0.0 and longitude != 0.0:
+                    st.success(f"✅ 位置情報が設定されています")
+                    st.write(f"緯度: {latitude}, 経度: {longitude}")
+                    if address:
+                        st.write(f"住所: {address}")
+                else:
+                    st.warning("⚠️ 位置情報が設定されていません")
+            
             # アップロード日（自動設定）
             upload_date = datetime.now()
             
@@ -340,6 +445,8 @@ def render_file_upload(pinecone_service: PineconeService):
                 # セッション状態に保存
                 st.session_state['preview_chunks'] = preview_chunks_list
                 st.session_state['show_preview'] = True
+                
+                st.success(f"✅ {len(preview_chunks_list)}個のチャンクをプレビュー用に生成しました")
             
             # プレビューが表示されている場合
             if st.session_state.get('show_preview', False) and 'preview_chunks' in st.session_state:
@@ -394,7 +501,12 @@ def render_file_upload(pinecone_service: PineconeService):
                                         
                                         # 分類結果をチャンクに保存
                                         chunk['ai_classification'] = classification
+                                        
+                                        # セッション状態を即座に更新
+                                        st.session_state['preview_chunks'] = preview_chunks_list
+                                        
                                         st.success(f"✅ チャンク {i+1} の分類が完了しました！")
+                                        st.write(f"分類結果: {classification.get('main_category', '未分類')} / {classification.get('sub_category', '未分類')}")
                                         
                                 except Exception as e:
                                     st.error(f"AI分類中にエラーが発生しました: {str(e)}")
@@ -458,9 +570,156 @@ def render_file_upload(pinecone_service: PineconeService):
                             chunk['manual_main_category'] = selected_main
                             chunk['manual_sub_category'] = selected_sub
                             
-                            # 変更の確認
-                            if selected_main != current_main or selected_sub != current_sub:
-                                st.info("✅ カテゴリが手動で変更されました")
+                            # セッション状態を即座に更新
+                            st.session_state['preview_chunks'] = preview_chunks_list
+                            
+                            # チャンク固有のメタデータ設定
+                            st.markdown("#### 🔧 チャンク固有設定")
+                            st.markdown("このチャンクに特有の設定を行います")
+                            
+                            # チャンク固有の検証済みフラグ
+                            chunk_verified = st.checkbox(
+                                "✅ このチャンクは検証済み",
+                                value=chunk.get('chunk_verified', verified),  # デフォルトは全体設定を使用
+                                key=f"chunk_verified_{i}",
+                                help="このチャンクが検証済みであることを示します"
+                            )
+                            
+                            # チャンク固有のタイムスタンプタイプ
+                            chunk_timestamp_type = st.selectbox(
+                                "📅 このチャンクの更新タイプ",
+                                options=[
+                                    ("yearly", "年次更新"),
+                                    ("monthly", "月次更新"),
+                                    ("quarterly", "四半期更新"),
+                                    ("daily", "日次更新"),
+                                    ("on_demand", "随時更新"),
+                                    ("static", "静的データ")
+                                ],
+                                format_func=lambda x: x[1],
+                                index=0 if chunk.get('chunk_timestamp_type', timestamp_type) == "yearly" else 
+                                      1 if chunk.get('chunk_timestamp_type', timestamp_type) == "monthly" else
+                                      2 if chunk.get('chunk_timestamp_type', timestamp_type) == "quarterly" else
+                                      3 if chunk.get('chunk_timestamp_type', timestamp_type) == "daily" else
+                                      4 if chunk.get('chunk_timestamp_type', timestamp_type) == "on_demand" else 5,
+                                key=f"chunk_timestamp_type_{i}",
+                                help="このチャンクの更新頻度を選択してください"
+                            )
+                            
+                            # チャンク固有の有効期間
+                            st.markdown("**📆 このチャンクの有効期間**")
+                            
+                            chunk_use_preset = st.checkbox(
+                                "プリセットから選択", 
+                                value=chunk.get('chunk_use_preset', True),
+                                key=f"chunk_use_preset_{i}"
+                            )
+                            
+                            if chunk_use_preset:
+                                chunk_selected_periods = st.multiselect(
+                                    "有効期間を選択",
+                                    options=valid_periods,
+                                    default=chunk.get('chunk_valid_for', selected_periods),
+                                    key=f"chunk_valid_for_{i}",
+                                    help="複数選択可能です"
+                                )
+                            else:
+                                chunk_custom_periods = st.text_area(
+                                    "有効期間を手動入力",
+                                    value='\n'.join(chunk.get('chunk_valid_for', selected_periods)),
+                                    placeholder="1行に1つの期間を入力してください\n例：\n令和6年度\n2024年度\n2024年4月〜2025年3月",
+                                    height=100,
+                                    key=f"chunk_custom_periods_{i}",
+                                    help="カスタムの有効期間を1行に1つずつ入力してください"
+                                )
+                                chunk_selected_periods = [p.strip() for p in chunk_custom_periods.split('\n') if p.strip()] if chunk_custom_periods.strip() else []
+                            
+                            # チャンク固有の位置情報
+                            st.markdown("**📍 このチャンクの位置情報**")
+                            
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                chunk_latitude = st.number_input(
+                                    "緯度",
+                                    min_value=-90.0,
+                                    max_value=90.0,
+                                    value=chunk.get('chunk_location', {}).get('latitude', latitude),
+                                    step=0.0001,
+                                    format="%.4f",
+                                    key=f"chunk_latitude_{i}",
+                                    help="緯度を入力してください（例：35.9056）"
+                                )
+                                
+                                chunk_longitude = st.number_input(
+                                    "経度",
+                                    min_value=-180.0,
+                                    max_value=180.0,
+                                    value=chunk.get('chunk_location', {}).get('longitude', longitude),
+                                    step=0.0001,
+                                    format="%.4f",
+                                    key=f"chunk_longitude_{i}",
+                                    help="経度を入力してください（例：139.4852）"
+                                )
+                            
+                            with col2:
+                                chunk_address = st.text_input(
+                                    "住所",
+                                    value=chunk.get('chunk_location', {}).get('address', address),
+                                    placeholder="住所を入力してください",
+                                    key=f"chunk_address_{i}",
+                                    help="詳細な住所を入力してください"
+                                )
+                                
+                                # チャンク固有の位置情報の検証
+                                if chunk_latitude != 0.0 and chunk_longitude != 0.0:
+                                    st.success(f"✅ 位置情報が設定されています")
+                                    st.write(f"緯度: {chunk_latitude}, 経度: {chunk_longitude}")
+                                    if chunk_address:
+                                        st.write(f"住所: {chunk_address}")
+                                else:
+                                    st.warning("⚠️ 位置情報が設定されていません")
+                            
+                            # チャンク固有の設定を保存
+                            chunk['chunk_verified'] = chunk_verified
+                            chunk['chunk_timestamp_type'] = chunk_timestamp_type
+                            chunk['chunk_valid_for'] = chunk_selected_periods
+                            chunk['chunk_location'] = {
+                                'latitude': chunk_latitude,
+                                'longitude': chunk_longitude,
+                                'address': chunk_address
+                            }
+                            chunk['chunk_use_preset'] = chunk_use_preset
+                            
+                            # セッション状態を即座に更新
+                            st.session_state['preview_chunks'] = preview_chunks_list
+                            
+                            # 質問例設定セクション
+                            st.markdown("#### 💬 質問例設定")
+                            st.markdown("このチャンクに関連する質問例を入力してください（検索時に優先されます）")
+                            
+                            # 既存の質問例を取得
+                            existing_examples = chunk.get('question_examples', [])
+                            existing_text = '\n'.join(existing_examples) if existing_examples else ''
+                            
+                            # 質問例の入力
+                            question_examples_text = st.text_area(
+                                "質問例",
+                                value=existing_text,
+                                placeholder="このチャンクに関連する質問例を入力してください（1行に1つの質問）\n例：\nこの物件の完成時期はいつですか？\n最寄り駅までの距離は？\n周辺の学校について教えてください",
+                                height=100,
+                                key=f"question_examples_{i}",
+                                help="このチャンクに関連する質問例を1行に1つずつ入力してください。入力された質問例は検索時に優先されます。"
+                            )
+                            
+                            # 質問例をリストに変換してチャンクに保存
+                            if question_examples_text.strip():
+                                chunk_question_examples = [q.strip() for q in question_examples_text.split('\n') if q.strip()]
+                                chunk['question_examples'] = chunk_question_examples
+                            else:
+                                chunk['question_examples'] = []
+                            
+                            # セッション状態を即座に更新
+                            st.session_state['preview_chunks'] = preview_chunks_list
                     
                     # 分割の品質チェック
                     st.markdown("#### 🔍 分割品質チェック")
@@ -513,8 +772,10 @@ def render_file_upload(pinecone_service: PineconeService):
                         # セッション状態からチャンクを取得、ない場合は新しく生成
                         if 'preview_chunks' in st.session_state:
                             chunks = st.session_state['preview_chunks']
+                            st.info(f"セッション状態から{len(chunks)}個のチャンクを取得しました")
                         else:
                             chunks = advanced_manual_chunk_split(edited_text, chunk_separators)
+                            st.info(f"新しく{len(chunks)}個のチャンクを生成しました")
                         
                         if not chunks:
                             st.error("チャンクが生成されませんでした。セパレータを確認してください。")
@@ -523,7 +784,17 @@ def render_file_upload(pinecone_service: PineconeService):
                         st.write(f"ファイルを{len(chunks)}個のチャンクに分割しました")
                         
                         # メタデータを追加
-                        for chunk in chunks:
+                        for i, chunk in enumerate(chunks):
+                            # デバッグ情報の表示
+                            st.write(f"チャンク {i+1} の処理:")
+                            st.write(f"  - 手動カテゴリ: {chunk.get('manual_main_category', 'なし')} / {chunk.get('manual_sub_category', 'なし')}")
+                            st.write(f"  - AI分類: {chunk.get('ai_classification', 'なし')}")
+                            st.write(f"  - 質問例: {chunk.get('question_examples', [])}")
+                            st.write(f"  - 検証済み: {chunk.get('chunk_verified', verified)}")
+                            st.write(f"  - 更新タイプ: {chunk.get('chunk_timestamp_type', timestamp_type)}")
+                            st.write(f"  - 有効期間: {chunk.get('chunk_valid_for', selected_periods)}")
+                            st.write(f"  - 位置情報: 緯度{chunk.get('chunk_location', {}).get('latitude', latitude)}, 経度{chunk.get('chunk_location', {}).get('longitude', longitude)}, 住所{chunk.get('chunk_location', {}).get('address', address)}")
+                            
                             # 基本メタデータ
                             metadata = {
                                 "main_category": "",
@@ -531,13 +802,23 @@ def render_file_upload(pinecone_service: PineconeService):
                                 "city": city if city else "",
                                 "created_date": created_date.isoformat() if created_date else "",
                                 "upload_date": upload_date.isoformat(),
-                                "source": source if source else ""
+                                "source": source if source else "",
+                                "question_examples": chunk.get('question_examples', []),
+                                "verified": chunk.get('chunk_verified', verified),
+                                "timestamp_type": chunk.get('chunk_timestamp_type', timestamp_type),
+                                "valid_for": chunk.get('chunk_valid_for', selected_periods if selected_periods else []),
+                                "location": chunk.get('chunk_location', {
+                                    "latitude": latitude,
+                                    "longitude": longitude,
+                                    "address": address
+                                })
                             }
                             
                             # カテゴリの設定（優先順位: 手動編集 > AI分類）
                             if 'manual_main_category' in chunk and chunk['manual_main_category']:
                                 metadata["main_category"] = chunk['manual_main_category']
                                 metadata["sub_category"] = chunk.get('manual_sub_category', '')
+                                st.write(f"  - 手動カテゴリを設定: {metadata['main_category']} / {metadata['sub_category']}")
                             elif 'ai_classification' in chunk:
                                 ai_result = chunk['ai_classification']
                                 metadata["main_category"] = ai_result.get('main_category', '')
@@ -545,6 +826,9 @@ def render_file_upload(pinecone_service: PineconeService):
                                 # AI分類の詳細情報も保存
                                 metadata["ai_confidence"] = ai_result.get('confidence', 0.0)
                                 metadata["ai_reasoning"] = ai_result.get('reasoning', '')
+                                st.write(f"  - AI分類を設定: {metadata['main_category']} / {metadata['sub_category']}")
+                            else:
+                                st.write(f"  - カテゴリ未設定")
                             
                             # チャンクの基本情報
                             chunk["metadata"] = metadata
@@ -554,6 +838,9 @@ def render_file_upload(pinecone_service: PineconeService):
                             # AI分類情報がある場合は追加
                             if 'ai_classification' in chunk:
                                 chunk["metadata"]["ai_classification"] = chunk['ai_classification']
+                            
+                            # 最終的なメタデータを表示
+                            st.write(f"  - 最終メタデータ: {metadata}")
                         
                         with st.spinner("Pineconeにアップロード中..."):
                             pinecone_service.upload_chunks(chunks)
