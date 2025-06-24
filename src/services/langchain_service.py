@@ -7,7 +7,7 @@ from langchain.schema import HumanMessage, AIMessage, SystemMessage
 import os
 import tiktoken
 from openai import OpenAI
-from ..config.settings import (
+from src.config.settings import (
     PINECONE_API_KEY,
     PINECONE_INDEX_NAME,
     OPENAI_API_KEY,
@@ -17,7 +17,7 @@ from ..config.settings import (
     DEFAULT_RESPONSE_TEMPLATE
 )
 import streamlit as st
-from .advanced_search_service import AdvancedSearchService
+from src.services.advanced_search_service import AdvancedSearchService
 
 class LangChainService:
     def __init__(self, callback_manager=None):
@@ -60,7 +60,7 @@ class LangChainService:
         self.response_template = DEFAULT_RESPONSE_TEMPLATE
         
         # 高度な検索サービスの初期化
-        from .pinecone_service import PineconeService
+        from src.services.pinecone_service import PineconeService
         pinecone_service = PineconeService()
         self.advanced_search = AdvancedSearchService(pinecone_service)
         

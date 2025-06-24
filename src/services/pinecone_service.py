@@ -2,7 +2,7 @@ from typing import List, Dict, Any
 from pinecone import Pinecone
 from openai import OpenAI
 import time
-from ..config.settings import (
+from src.config.settings import (
     PINECONE_API_KEY,
     PINECONE_INDEX_NAME,
     OPENAI_API_KEY,

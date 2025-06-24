@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 from janome.tokenizer import Tokenizer
-from ..config.settings import CHUNK_SIZE
+from src.config.settings import CHUNK_SIZE
 import time
 
 class JapaneseTextProcessor:
