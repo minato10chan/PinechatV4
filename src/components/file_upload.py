@@ -299,15 +299,15 @@ def render_file_upload(pinecone_service: PineconeService):
             )
             
             # 有効期間（テキスト入力）
-            st.markdown("**📆 有効期間**")
-            st.markdown("このデータが有効な期間を入力してください（例：令和6年度、複数可）")
+            st.markdown("**📆 データの作成年度**")
+            st.markdown("このデータの作成年度を入力してください（例：令和6年度、複数可）")
             
             valid_for_text = st.text_area(
-                "有効期間",
+                "作成年度",
                 value="令和6年度",
-                placeholder="有効期間を入力してください（1行に1つの期間）\n例：\n令和6年度\n令和5年度\n2024年度",
+                placeholder="作成年度を入力してください（1行に1つの年度）\n例：\n令和6年度\n令和5年度\n2024年度",
                 height=100,
-                help="このデータが有効な期間を1行に1つずつ入力してください"
+                help="このデータの作成年度を1行に1つずつ入力してください"
             )
             selected_periods = [p.strip() for p in valid_for_text.split('\n') if p.strip()] if valid_for_text.strip() else []
             
@@ -575,16 +575,16 @@ def render_file_upload(pinecone_service: PineconeService):
                             )
                             
                             # チャンク固有の有効期間（テキスト入力）
-                            st.markdown("**📆 このチャンクの有効期間**")
-                            st.markdown("有効期間を入力してください（例：令和6年度、複数可）")
+                            st.markdown("**📆 このチャンクの作成年度**")
+                            st.markdown("作成年度を入力してください（例：令和6年度、複数可）")
                             
                             chunk_valid_for_text = st.text_area(
-                                "有効期間",
+                                "作成年度",
                                 value='\n'.join(chunk.get('chunk_valid_for', selected_periods)),
-                                placeholder="有効期間を入力してください（1行に1つの期間）\n例：\n令和6年度\n令和5年度\n2024年度",
+                                placeholder="作成年度を入力してください（1行に1つの年度）\n例：\n令和6年度\n令和5年度\n2024年度",
                                 height=100,
                                 key=f"chunk_valid_for_{i}",
-                                help="このチャンクが有効な期間を1行に1つずつ入力してください"
+                                help="このチャンクの作成年度を1行に1つずつ入力してください"
                             )
                             chunk_selected_periods = [p.strip() for p in chunk_valid_for_text.split('\n') if p.strip()] if chunk_valid_for_text.strip() else []
                             
@@ -745,7 +745,7 @@ def render_file_upload(pinecone_service: PineconeService):
                             st.write(f"  - 質問例: {chunk.get('question_examples', [])}")
                             st.write(f"  - 検証済み: {chunk.get('chunk_verified', verified)}")
                             st.write(f"  - 更新タイプ: {chunk.get('chunk_timestamp_type', timestamp_type)}")
-                            st.write(f"  - 有効期間: {chunk.get('chunk_valid_for', selected_periods)}")
+                            st.write(f"  - 作成年度: {chunk.get('chunk_valid_for', selected_periods)}")
                             st.write(f"  - 位置情報: 緯度{chunk.get('chunk_location', {}).get('latitude', latitude)}, 経度{chunk.get('chunk_location', {}).get('longitude', longitude)}, 住所{chunk.get('chunk_location', {}).get('address', address)}")
                             
                             # 基本メタデータ

@@ -176,7 +176,7 @@ class LangChainService:
                 "質問例": match.metadata.get("question_examples", []),
                 "検証済み": match.metadata.get("verified", False),
                 "更新タイプ": match.metadata.get("timestamp_type", "static"),
-                "有効期間": match.metadata.get("valid_for", []),
+                "作成年度": match.metadata.get("valid_for", []),
                 "位置情報": match.metadata.get("location", {})
             }
             search_details.append(detail)
@@ -266,7 +266,7 @@ class LangChainService:
                 "質問例": doc["metadata"].get("question_examples", []),
                 "検証済み": doc["metadata"].get("verified", False),
                 "更新タイプ": doc["metadata"].get("timestamp_type", "static"),
-                "有効期間": doc["metadata"].get("valid_for", []),
+                "作成年度": doc["metadata"].get("valid_for", []),
                 "位置情報": doc["metadata"].get("location", {})
             }
             search_details.append(detail)

@@ -173,7 +173,7 @@ class PineconeService:
                         print(f"    - 質問例: {metadata['question_examples']}")
                         print(f"    - 検証済み: {metadata['verified']}")
                         print(f"    - 更新タイプ: {metadata['timestamp_type']}")
-                        print(f"    - 有効期間: {metadata['valid_for']}")
+                        print(f"    - 作成年度: {metadata['valid_for']}")
                         print(f"    - 位置情報: {metadata['location']}")
                         
                         # デバッグ情報の表示
