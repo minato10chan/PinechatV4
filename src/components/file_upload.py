@@ -498,6 +498,9 @@ def render_file_upload(pinecone_service: PineconeService):
                             chunk['manual_main_category'] = selected_main
                             chunk['manual_sub_category'] = selected_sub
                             
+                            # デバッグ出力を追加
+                            st.write(f"  - チャンク {i+1} の手動カテゴリ設定: {selected_main} / {selected_sub}")
+                            
                             # セッション状態を即座に更新
                             st.session_state['preview_chunks'] = preview_chunks_list
                             
@@ -706,6 +709,11 @@ def render_file_upload(pinecone_service: PineconeService):
                             }
                             
                             # カテゴリの設定（優先順位: 手動編集 > AI分類）
+                            st.write(f"  - カテゴリ設定の確認:")
+                            st.write(f"    - manual_main_category: {chunk.get('manual_main_category', 'なし')}")
+                            st.write(f"    - manual_sub_category: {chunk.get('manual_sub_category', 'なし')}")
+                            st.write(f"    - ai_classification: {chunk.get('ai_classification', 'なし')}")
+                            
                             if 'manual_main_category' in chunk and chunk['manual_main_category']:
                                 metadata["main_category"] = chunk['manual_main_category']
                                 metadata["sub_category"] = chunk.get('manual_sub_category', '')
