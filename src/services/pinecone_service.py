@@ -147,6 +147,7 @@ class PineconeService:
                             "upload_date": chunk.get("metadata", {}).get("upload_date", ""),
                             "source": chunk.get("metadata", {}).get("source", ""),
                             "question_examples": chunk.get("metadata", {}).get("question_examples", []),
+                            "answer_examples": chunk.get("metadata", {}).get("answer_examples", []),
                             "verified": chunk.get("metadata", {}).get("verified", False),
                             "timestamp_type": chunk.get("metadata", {}).get("timestamp_type", "static"),
                             "valid_for": chunk.get("metadata", {}).get("valid_for", []),
@@ -167,6 +168,7 @@ class PineconeService:
                         print(f"    - 市区町村: {metadata['city']}")
                         print(f"    - ソース: {metadata['source']}")
                         print(f"    - 質問例: {metadata['question_examples']}")
+                        print(f"    - 回答例: {metadata['answer_examples']}")
                         print(f"    - 検証済み: {metadata['verified']}")
                         print(f"    - 更新タイプ: {metadata['timestamp_type']}")
                         print(f"    - 作成年度: {metadata['valid_for']}")

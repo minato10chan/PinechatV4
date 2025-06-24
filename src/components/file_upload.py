@@ -422,6 +422,10 @@ def render_file_upload(pinecone_service: PineconeService):
                         if chunk.get('question_examples'):
                             chunk_summary += f" | 💬 {len(chunk['question_examples'])}個の質問例"
                         
+                        # 回答例がある場合は表示
+                        if chunk.get('answer_examples'):
+                            chunk_summary += f" | 💡 {len(chunk['answer_examples'])}個の回答例"
+                        
                         # セッション状態で開閉状態を管理
                         expander_key = f"chunk_expander_{i}"
                         if expander_key not in st.session_state:
@@ -732,6 +736,155 @@ def render_file_upload(pinecone_service: PineconeService):
                                         st.write(f"{j}. {question}")
                             else:
                                 st.info("ℹ️ 質問例が設定されていません。AI生成ボタンを使用して質問例を生成してください。")
+                            
+                            # 回答例設定セクション
+                            st.markdown("#### 💡 回答例設定")
+                            st.markdown("このチャンクに関連する質問と回答のペアをAIで生成・編集できます")
+                            
+                            # 既存の回答例を取得
+                            existing_qa_pairs = chunk.get('answer_examples', [])
+                            
+                            # AI生成ボタン
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                if st.button(f"🤖 AIで回答例を生成", key=f"generate_answers_{i}"):
+                                    # セッション状態を設定してexpanderを開いた状態にする
+                                    st.session_state[f"generate_answers_{i}"] = True
+                                    st.session_state[f"chunk_expander_{i}"] = True
+                                    
+                                    try:
+                                        with st.spinner(f"チャンク {i+1} の回答例を生成中..."):
+                                            # カテゴリ情報を取得
+                                            category = ""
+                                            subcategory = ""
+                                            if 'ai_classification' in chunk:
+                                                ai_result = chunk['ai_classification']
+                                                category = ai_result.get('main_category', '')
+                                                subcategory = ai_result.get('sub_category', '')
+                                            elif 'manual_main_category' in chunk and chunk['manual_main_category']:
+                                                category = chunk['manual_main_category']
+                                                subcategory = chunk.get('manual_sub_category', '')
+                                            
+                                            # 回答例を生成
+                                            generated_qa_pairs = question_generator.generate_answer_examples(
+                                                chunk['text'], 
+                                                category, 
+                                                subcategory
+                                            )
+                                            
+                                            if generated_qa_pairs:
+                                                # 生成された回答例をチャンクに保存
+                                                chunk['answer_examples'] = generated_qa_pairs
+                                                
+                                                # セッション状態を即座に更新
+                                                st.session_state['preview_chunks'] = preview_chunks_list
+                                                
+                                                st.success(f"✅ チャンク {i+1} の回答例を生成しました！")
+                                                st.write(f"生成された回答例: {len(generated_qa_pairs)}個")
+                                            else:
+                                                st.warning("⚠️ 回答例の生成に失敗しました。")
+                                                
+                                    except Exception as e:
+                                        st.error(f"回答例生成中にエラーが発生しました: {str(e)}")
+                            
+                            with col2:
+                                if existing_qa_pairs:
+                                    if st.button(f"🔧 既存の回答例を改善", key=f"improve_answers_{i}"):
+                                        # セッション状態を設定してexpanderを開いた状態にする
+                                        st.session_state[f"improve_answers_{i}"] = True
+                                        st.session_state[f"chunk_expander_{i}"] = True
+                                        
+                                        try:
+                                            with st.spinner(f"チャンク {i+1} の回答例を改善中..."):
+                                                # カテゴリ情報を取得
+                                                category = ""
+                                                subcategory = ""
+                                                if 'ai_classification' in chunk:
+                                                    ai_result = chunk['ai_classification']
+                                                    category = ai_result.get('main_category', '')
+                                                    subcategory = ai_result.get('sub_category', '')
+                                                elif 'manual_main_category' in chunk and chunk['manual_main_category']:
+                                                    category = chunk['manual_main_category']
+                                                    subcategory = chunk.get('manual_sub_category', '')
+                                                
+                                                # 回答例を改善
+                                                improved_qa_pairs = question_generator.improve_answer_examples(
+                                                    chunk['text'],
+                                                    existing_qa_pairs,
+                                                    category,
+                                                    subcategory
+                                                )
+                                                
+                                                if improved_qa_pairs:
+                                                    # 改善された回答例をチャンクに保存
+                                                    chunk['answer_examples'] = improved_qa_pairs
+                                                    
+                                                    # セッション状態を即座に更新
+                                                    st.session_state['preview_chunks'] = preview_chunks_list
+                                                    
+                                                    st.success(f"✅ チャンク {i+1} の回答例を改善しました！")
+                                                    st.write(f"改善された回答例: {len(improved_qa_pairs)}個")
+                                                else:
+                                                    st.warning("⚠️ 回答例の改善に失敗しました。")
+                                                    
+                                        except Exception as e:
+                                            st.error(f"回答例改善中にエラーが発生しました: {str(e)}")
+                            
+                            # 現在の回答例を表示・編集
+                            current_qa_pairs = chunk.get('answer_examples', [])
+                            
+                            # 回答例の表示・編集
+                            if current_qa_pairs:
+                                st.info(f"📊 現在の回答例: {len(current_qa_pairs)}個")
+                                
+                                # 回答例の編集用UI
+                                for j, qa_pair in enumerate(current_qa_pairs):
+                                    with st.expander(f"回答例 {j+1}", expanded=False):
+                                        # 質問の編集
+                                        question = st.text_area(
+                                            "質問",
+                                            value=qa_pair.get('question', ''),
+                                            key=f"answer_question_{i}_{j}",
+                                            help="質問を編集してください"
+                                        )
+                                        
+                                        # 回答の編集
+                                        answer = st.text_area(
+                                            "回答",
+                                            value=qa_pair.get('answer', ''),
+                                            key=f"answer_answer_{i}_{j}",
+                                            help="回答を編集してください"
+                                        )
+                                        
+                                        # 更新されたペアを保存
+                                        current_qa_pairs[j] = {
+                                            "question": question,
+                                            "answer": answer
+                                        }
+                                
+                                # 新しい回答例を追加
+                                if st.button(f"➕ 新しい回答例を追加", key=f"add_answer_{i}"):
+                                    current_qa_pairs.append({
+                                        "question": "",
+                                        "answer": ""
+                                    })
+                                    st.session_state['preview_chunks'] = preview_chunks_list
+                                    st.rerun()
+                                
+                                # 回答例をチャンクに保存
+                                chunk['answer_examples'] = current_qa_pairs
+                                
+                                # 回答例のプレビュー
+                                with st.expander("👀 回答例プレビュー", expanded=False):
+                                    for j, qa_pair in enumerate(current_qa_pairs, 1):
+                                        st.markdown(f"**{j}. 質問:** {qa_pair.get('question', '')}")
+                                        st.markdown(f"**回答:** {qa_pair.get('answer', '')}")
+                                        st.markdown("---")
+                            else:
+                                st.info("ℹ️ 回答例が設定されていません。AI生成ボタンを使用して回答例を生成してください。")
+                            
+                            # セッション状態を即座に更新
+                            st.session_state['preview_chunks'] = preview_chunks_list
                     
                     # 分割の品質チェック
                     st.markdown("#### 🔍 分割品質チェック")
@@ -802,6 +955,7 @@ def render_file_upload(pinecone_service: PineconeService):
                             st.write(f"  - 手動カテゴリ: {chunk.get('manual_main_category', 'なし')} / {chunk.get('manual_sub_category', 'なし')}")
                             st.write(f"  - AI分類: {chunk.get('ai_classification', 'なし')}")
                             st.write(f"  - 質問例: {chunk.get('question_examples', [])}")
+                            st.write(f"  - 回答例: {chunk.get('answer_examples', [])}")
                             st.write(f"  - 検証済み: {verified}")
                             st.write(f"  - 更新タイプ: {timestamp_type}")
                             st.write(f"  - 位置情報: 緯度{chunk.get('chunk_location', {}).get('latitude', None)}, 経度{chunk.get('chunk_location', {}).get('longitude', None)}, 住所{chunk.get('chunk_location', {}).get('address', '')}")
@@ -815,6 +969,7 @@ def render_file_upload(pinecone_service: PineconeService):
                                 "upload_date": upload_date.isoformat(),
                                 "source": source if source else "",
                                 "question_examples": chunk.get('question_examples', []),
+                                "answer_examples": chunk.get('answer_examples', []),
                                 "verified": verified,
                                 "timestamp_type": timestamp_type,
                                 "valid_for": selected_periods if selected_periods else [],
