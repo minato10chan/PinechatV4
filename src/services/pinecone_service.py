@@ -150,15 +150,11 @@ class PineconeService:
                             "verified": chunk.get("metadata", {}).get("verified", False),
                             "timestamp_type": chunk.get("metadata", {}).get("timestamp_type", "static"),
                             "valid_for": chunk.get("metadata", {}).get("valid_for", []),
-                            "location": chunk.get("metadata", {}).get("location", {
-                                "latitude": 0.0,
-                                "longitude": 0.0,
-                                "address": ""
-                            }),
+                            "latitude": chunk.get("metadata", {}).get("latitude"),
+                            "longitude": chunk.get("metadata", {}).get("longitude"),
+                            "address": chunk.get("metadata", {}).get("address", ""),
                             # CSVファイルのメタデータ
                             "facility_name": chunk.get("metadata", {}).get("facility_name", ""),
-                            "latitude": chunk.get("metadata", {}).get("latitude", 0.0),
-                            "longitude": chunk.get("metadata", {}).get("longitude", 0.0),
                             "walking_distance": chunk.get("metadata", {}).get("walking_distance", 0),
                             "walking_minutes": chunk.get("metadata", {}).get("walking_minutes", 0),
                             "straight_distance": chunk.get("metadata", {}).get("straight_distance", 0)
@@ -174,7 +170,9 @@ class PineconeService:
                         print(f"    - 検証済み: {metadata['verified']}")
                         print(f"    - 更新タイプ: {metadata['timestamp_type']}")
                         print(f"    - 作成年度: {metadata['valid_for']}")
-                        print(f"    - 位置情報: {metadata['location']}")
+                        print(f"    - 緯度: {metadata['latitude']}")
+                        print(f"    - 経度: {metadata['longitude']}")
+                        print(f"    - 住所: {metadata['address']}")
                         
                         # デバッグ情報の表示
                         print(f"  メタデータ: {json.dumps(metadata, ensure_ascii=False)}")

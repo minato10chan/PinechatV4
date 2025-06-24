@@ -700,11 +700,9 @@ def render_file_upload(pinecone_service: PineconeService):
                                 "verified": chunk.get('chunk_verified', verified),
                                 "timestamp_type": chunk.get('chunk_timestamp_type', timestamp_type),
                                 "valid_for": selected_periods if selected_periods else [],
-                                "location": chunk.get('chunk_location', {
-                                    "latitude": chunk.get('chunk_location', {}).get('latitude', None),
-                                    "longitude": chunk.get('chunk_location', {}).get('longitude', None),
-                                    "address": chunk.get('chunk_location', {}).get('address', '')
-                                })
+                                "latitude": chunk.get('chunk_location', {}).get('latitude'),
+                                "longitude": chunk.get('chunk_location', {}).get('longitude'),
+                                "address": chunk.get('chunk_location', {}).get('address', '')
                             }
                             
                             # カテゴリの設定（優先順位: 手動編集 > AI分類）
