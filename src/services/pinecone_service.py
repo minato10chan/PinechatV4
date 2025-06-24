@@ -150,8 +150,8 @@ class PineconeService:
                             "verified": chunk.get("metadata", {}).get("verified", False),
                             "timestamp_type": chunk.get("metadata", {}).get("timestamp_type", "static"),
                             "valid_for": chunk.get("metadata", {}).get("valid_for", []),
-                            "latitude": chunk.get("metadata", {}).get("latitude"),
-                            "longitude": chunk.get("metadata", {}).get("longitude"),
+                            "latitude": chunk.get("metadata", {}).get("latitude") if chunk.get("metadata", {}).get("latitude") is not None else 0.0,
+                            "longitude": chunk.get("metadata", {}).get("longitude") if chunk.get("metadata", {}).get("longitude") is not None else 0.0,
                             "address": chunk.get("metadata", {}).get("address", ""),
                             # CSVファイルのメタデータ
                             "facility_name": chunk.get("metadata", {}).get("facility_name", ""),

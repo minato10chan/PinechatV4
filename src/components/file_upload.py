@@ -700,8 +700,8 @@ def render_file_upload(pinecone_service: PineconeService):
                                 "verified": chunk.get('chunk_verified', verified),
                                 "timestamp_type": chunk.get('chunk_timestamp_type', timestamp_type),
                                 "valid_for": selected_periods if selected_periods else [],
-                                "latitude": chunk.get('chunk_location', {}).get('latitude'),
-                                "longitude": chunk.get('chunk_location', {}).get('longitude'),
+                                "latitude": chunk.get('chunk_location', {}).get('latitude') if chunk.get('chunk_location', {}).get('latitude') is not None else 0.0,
+                                "longitude": chunk.get('chunk_location', {}).get('longitude') if chunk.get('chunk_location', {}).get('longitude') is not None else 0.0,
                                 "address": chunk.get('chunk_location', {}).get('address', '')
                             }
                             
