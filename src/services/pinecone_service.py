@@ -147,7 +147,7 @@ class PineconeService:
                             "upload_date": chunk.get("metadata", {}).get("upload_date", ""),
                             "source": chunk.get("metadata", {}).get("source", ""),
                             "question_examples": chunk.get("metadata", {}).get("question_examples", []),
-                            "answer_examples": chunk.get("metadata", {}).get("answer_examples", []),
+                            "answer_examples": self._convert_answer_examples_to_strings(chunk.get("metadata", {}).get("answer_examples", [])),
                             "verified": chunk.get("metadata", {}).get("verified", False),
                             "timestamp_type": chunk.get("metadata", {}).get("timestamp_type", "static"),
                             "valid_for": chunk.get("metadata", {}).get("valid_for", []),
@@ -437,4 +437,62 @@ class PineconeService:
             }
         except Exception as e:
             print(f"ベクトルの取得中にエラーが発生しました: {str(e)}")
-            return None 
+            return None
+
+    def _convert_answer_examples_to_strings(self, answer_examples: List[Dict]) -> List[str]:
+        """answer_examplesを文字列のリストに変換"""
+        if not answer_examples:
+            return []
+        
+        converted_examples = []
+        for example in answer_examples:
+            if isinstance(example, dict):
+                # 辞書の場合は "質問: 内容, 回答: 内容" の形式に変換
+                question = example.get('question', '')
+                answer = example.get('answer', '')
+                if question and answer:
+                    converted_examples.append(f"質問: {question}, 回答: {answer}")
+                elif question:
+                    converted_examples.append(f"質問: {question}")
+                elif answer:
+                    converted_examples.append(f"回答: {answer}")
+            else:
+                # 辞書以外の場合は文字列に変換
+                converted_examples.append(str(example))
+        
+        return converted_examples
+
+    def _convert_answer_examples_from_strings(self, answer_examples: List[str]) -> List[Dict]:
+        """文字列のリストからanswer_examplesを辞書のリストに変換"""
+        if not answer_examples:
+            return []
+        
+        converted_examples = []
+        for example in answer_examples:
+            if isinstance(example, str):
+                # "質問: 内容, 回答: 内容" の形式から辞書に変換
+                if "質問:" in example and "回答:" in example:
+                    try:
+                        # 質問と回答を抽出
+                        parts = example.split(", 回答: ")
+                        if len(parts) == 2:
+                            question_part = parts[0].replace("質問: ", "")
+                            answer_part = parts[1]
+                            converted_examples.append({
+                                "question": question_part,
+                                "answer": answer_part
+                            })
+                        else:
+                            # 形式が異なる場合はそのまま文字列として保存
+                            converted_examples.append({"question": "", "answer": example})
+                    except:
+                        # パースに失敗した場合はそのまま文字列として保存
+                        converted_examples.append({"question": "", "answer": example})
+                else:
+                    # 質問と回答の形式でない場合は回答として保存
+                    converted_examples.append({"question": "", "answer": example})
+            else:
+                # 文字列以外の場合はそのまま
+                converted_examples.append(example)
+        
+        return converted_examples 
