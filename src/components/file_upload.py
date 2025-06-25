@@ -432,7 +432,7 @@ def render_file_upload(pinecone_service: PineconeService):
                             st.session_state[expander_key] = False
                         
                         # 手動でexpanderの開閉を切り替えるボタン
-                        if st.button(f"📋 チャンク {i+1} の詳細を{'閉じる' if st.session_state[expander_key] else '開く'}", key=f"toggle_expander_{i}"):
+                        if st.button(f"📋 チャンク {i+1} の詳細を{'閉じる' if st.session_state[expander_key] else '開く'}", key=f"toggle_expander_{i}_{chunk['id']}"):
                             st.session_state[expander_key] = not st.session_state[expander_key]
                         
                         with st.expander(chunk_summary, expanded=st.session_state[expander_key]):
@@ -457,7 +457,7 @@ def render_file_upload(pinecone_service: PineconeService):
                             classifier = CategoryClassifier()
                             
                             # AI分類ボタン（チャンクごと）
-                            if st.button(f"🤖 AIでカテゴリを自動判定", key=f"ai_classify_{i}"):
+                            if st.button(f"🤖 AIでカテゴリを自動判定", key=f"ai_classify_{i}_{chunk['id']}"):
                                 try:
                                     with st.spinner(f"チャンク {i+1} を分析中..."):
                                         # AI分類を実行
@@ -613,7 +613,7 @@ def render_file_upload(pinecone_service: PineconeService):
                             # AI生成ボタン
                             col1, col2 = st.columns(2)
                             with col1:
-                                if st.button(f"🤖 AIで質問例を生成", key=f"generate_questions_{i}"):
+                                if st.button(f"🤖 AIで質問例を生成", key=f"generate_questions_{i}_{chunk['id']}"):
                                     try:
                                         with st.spinner(f"チャンク {i+1} の質問例を生成中..."):
                                             # カテゴリ情報を取得
@@ -651,7 +651,7 @@ def render_file_upload(pinecone_service: PineconeService):
                             
                             with col2:
                                 if existing_examples:
-                                    if st.button(f"🔧 既存の質問例を改善", key=f"improve_questions_{i}"):
+                                    if st.button(f"🔧 既存の質問例を改善", key=f"improve_questions_{i}_{chunk['id']}"):
                                         try:
                                             with st.spinner(f"チャンク {i+1} の質問例を改善中..."):
                                                 # カテゴリ情報を取得
@@ -729,7 +729,7 @@ def render_file_upload(pinecone_service: PineconeService):
                             # AI生成ボタン
                             col1, col2 = st.columns(2)
                             with col1:
-                                if st.button(f"🤖 AIで回答例を生成", key=f"generate_answers_{i}"):
+                                if st.button(f"🤖 AIで回答例を生成", key=f"generate_answers_{i}_{chunk['id']}"):
                                     try:
                                         with st.spinner(f"チャンク {i+1} の回答例を生成中..."):
                                             # カテゴリ情報を取得
@@ -767,7 +767,7 @@ def render_file_upload(pinecone_service: PineconeService):
                             
                             with col2:
                                 if existing_qa_pairs:
-                                    if st.button(f"🔧 既存の回答例を改善", key=f"improve_answers_{i}"):
+                                    if st.button(f"🔧 既存の回答例を改善", key=f"improve_answers_{i}_{chunk['id']}"):
                                         try:
                                             with st.spinner(f"チャンク {i+1} の回答例を改善中..."):
                                                 # カテゴリ情報を取得
@@ -837,7 +837,7 @@ def render_file_upload(pinecone_service: PineconeService):
                                         }
                                 
                                 # 新しい回答例を追加
-                                if st.button(f"➕ 新しい回答例を追加", key=f"add_answer_{i}"):
+                                if st.button(f"➕ 新しい回答例を追加", key=f"add_answer_{i}_{chunk['id']}"):
                                     current_qa_pairs.append({
                                         "question": "",
                                         "answer": ""
