@@ -428,7 +428,7 @@ def render_file_upload(pinecone_service: PineconeService):
                         # セッション状態で開閉状態を管理
                         expander_key = f"chunk_expander_{i}"
                         if expander_key not in st.session_state:
-                            st.session_state[expander_key] = False
+                            st.session_state[expander_key] = True
                         
                         # 手動でexpanderの開閉を切り替えるボタン
                         if st.button(f"📋 チャンク {i+1} の詳細を{'閉じる' if st.session_state[expander_key] else '開く'}", key=f"toggle_expander_{i}_{chunk['id']}"):
