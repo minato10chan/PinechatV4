@@ -2,7 +2,7 @@ import streamlit as st
 from src.utils.text_processing import process_text_file
 from src.services.pinecone_service import PineconeService
 from src.services.category_classifier import CategoryClassifier
-from src.services.response_templates import QuestionExampleGenerator
+from src.services.response_templates import AnswerExampleGenerator
 from src.config.settings import METADATA_CATEGORIES
 from datetime import datetime
 import pandas as pd
@@ -418,10 +418,6 @@ def render_file_upload(pinecone_service: PineconeService):
                         if chunk.get('chunk_location', {}).get('latitude') is not None:
                             chunk_summary += " | 📍 位置情報あり"
                         
-                        # 質問例がある場合は表示
-                        if chunk.get('question_examples'):
-                            chunk_summary += f" | 💬 {len(chunk['question_examples'])}個の質問例"
-                        
                         # 回答例がある場合は表示
                         if chunk.get('answer_examples'):
                             chunk_summary += f" | 💡 {len(chunk['answer_examples'])}個の回答例"
@@ -598,126 +594,6 @@ def render_file_upload(pinecone_service: PineconeService):
                             
                             # セッション状態を即座に更新
                             st.session_state['preview_chunks'] = preview_chunks_list
-                            
-                            # 質問例設定セクション
-                            st.markdown("#### 💬 質問例設定")
-                            st.markdown("このチャンクに関連する質問例をAIで生成・編集できます（検索時に優先されます）")
-                            
-                            # 質問例生成器を初期化
-                            question_generator = QuestionExampleGenerator()
-                            
-                            # 既存の質問例を取得
-                            existing_examples = chunk.get('question_examples', [])
-                            existing_text = '\n'.join(existing_examples) if existing_examples else ''
-                            
-                            # AI生成ボタン
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                if st.button(f"🤖 AIで質問例を生成", key=f"generate_questions_{i}_{chunk['id']}"):
-                                    try:
-                                        with st.spinner(f"チャンク {i+1} の質問例を生成中..."):
-                                            # カテゴリ情報を取得
-                                            category = ""
-                                            subcategory = ""
-                                            if 'ai_classification' in chunk:
-                                                ai_result = chunk['ai_classification']
-                                                category = ai_result.get('main_category', '')
-                                                subcategory = ai_result.get('sub_category', '')
-                                            elif 'manual_main_category' in chunk and chunk['manual_main_category']:
-                                                category = chunk['manual_main_category']
-                                                subcategory = chunk.get('manual_sub_category', '')
-                                            
-                                            # 質問例を生成
-                                            generated_questions = question_generator.generate_question_examples(
-                                                chunk['text'], 
-                                                category, 
-                                                subcategory
-                                            )
-                                            
-                                            if generated_questions:
-                                                # 生成された質問例をチャンクに保存
-                                                chunk['question_examples'] = generated_questions
-                                                
-                                                # セッション状態を即座に更新
-                                                st.session_state['preview_chunks'] = preview_chunks_list
-                                                
-                                                st.success(f"✅ チャンク {i+1} の質問例を生成しました！")
-                                                st.write(f"生成された質問例: {len(generated_questions)}個")
-                                            else:
-                                                st.warning("⚠️ 質問例の生成に失敗しました。")
-                                                
-                                    except Exception as e:
-                                        st.error(f"質問例生成中にエラーが発生しました: {str(e)}")
-                            
-                            with col2:
-                                if existing_examples:
-                                    if st.button(f"🔧 既存の質問例を改善", key=f"improve_questions_{i}_{chunk['id']}"):
-                                        try:
-                                            with st.spinner(f"チャンク {i+1} の質問例を改善中..."):
-                                                # カテゴリ情報を取得
-                                                category = ""
-                                                subcategory = ""
-                                                if 'ai_classification' in chunk:
-                                                    ai_result = chunk['ai_classification']
-                                                    category = ai_result.get('main_category', '')
-                                                    subcategory = ai_result.get('sub_category', '')
-                                                elif 'manual_main_category' in chunk and chunk['manual_main_category']:
-                                                    category = chunk['manual_main_category']
-                                                    subcategory = chunk.get('manual_sub_category', '')
-                                                
-                                                # 質問例を改善
-                                                improved_questions = question_generator.improve_question_examples(
-                                                    chunk['text'],
-                                                    existing_examples,
-                                                    category,
-                                                    subcategory
-                                                )
-                                                
-                                                if improved_questions:
-                                                    # 改善された質問例をチャンクに保存
-                                                    chunk['question_examples'] = improved_questions
-                                                    
-                                                    # セッション状態を即座に更新
-                                                    st.session_state['preview_chunks'] = preview_chunks_list
-                                                    
-                                                    st.success(f"✅ チャンク {i+1} の質問例を改善しました！")
-                                                    st.write(f"改善された質問例: {len(improved_questions)}個")
-                                                else:
-                                                    st.warning("⚠️ 質問例の改善に失敗しました。")
-                                                    
-                                        except Exception as e:
-                                            st.error(f"質問例改善中にエラーが発生しました: {str(e)}")
-                            
-                            # 現在の質問例を表示・編集
-                            current_examples = chunk.get('question_examples', [])
-                            current_text = '\n'.join(current_examples) if current_examples else ''
-                            
-                            # 質問例の入力・編集
-                            question_examples_text = st.text_area(
-                                "質問例（編集可能）",
-                                value=current_text,
-                                placeholder="このチャンクに関連する質問例を入力してください（1行に1つの質問）\n例：\nこの物件の完成時期はいつですか？\n最寄り駅までの距離は？\n周辺の学校について教えてください",
-                                height=150,
-                                key=f"question_examples_{i}",
-                                help="このチャンクに関連する質問例を1行に1つずつ入力してください。入力された質問例は検索時に優先されます。"
-                            )
-                            
-                            # 質問例をリストに変換してチャンクに保存
-                            if question_examples_text.strip():
-                                chunk_question_examples = [q.strip() for q in question_examples_text.split('\n') if q.strip()]
-                                chunk['question_examples'] = chunk_question_examples
-                            else:
-                                chunk['question_examples'] = []
-                            
-                            # 質問例の統計情報を表示
-                            if chunk['question_examples']:
-                                st.info(f"📊 現在の質問例: {len(chunk['question_examples'])}個")
-                                # 質問例のプレビュー
-                                with st.expander("👀 質問例プレビュー", expanded=False):
-                                    for j, question in enumerate(chunk['question_examples'], 1):
-                                        st.write(f"{j}. {question}")
-                            else:
-                                st.info("ℹ️ 質問例が設定されていません。AI生成ボタンを使用して質問例を生成してください。")
                             
                             # 回答例設定セクション
                             st.markdown("#### 💡 回答例設定")
@@ -928,7 +804,6 @@ def render_file_upload(pinecone_service: PineconeService):
                             st.write(f"チャンク {i+1} の処理:")
                             st.write(f"  - 手動カテゴリ: {chunk.get('manual_main_category', 'なし')} / {chunk.get('manual_sub_category', 'なし')}")
                             st.write(f"  - AI分類: {chunk.get('ai_classification', 'なし')}")
-                            st.write(f"  - 質問例: {chunk.get('question_examples', [])}")
                             st.write(f"  - 回答例: {chunk.get('answer_examples', [])}")
                             st.write(f"  - 検証済み: {verified}")
                             st.write(f"  - 更新タイプ: {timestamp_type}")
@@ -942,7 +817,6 @@ def render_file_upload(pinecone_service: PineconeService):
                                 "created_date": created_date.isoformat() if created_date else "",
                                 "upload_date": upload_date.isoformat(),
                                 "source": source if source else "",
-                                "question_examples": chunk.get('question_examples', []),
                                 "answer_examples": chunk.get('answer_examples', []),
                                 "verified": verified,
                                 "timestamp_type": timestamp_type,

@@ -134,31 +134,26 @@ class PineconeService:
                     try:
                         print(f"  チャンク {j}/{len(batch)} の埋め込みベクトルを生成中...")
                         
-                        # テキスト内容、質問例、回答例を結合してベクトル化
+                        # テキスト内容と回答例を結合してベクトル化
                         main_text = chunk["text"]
-                        question_examples = chunk.get("metadata", {}).get("question_examples", [])
                         answer_examples = chunk.get("metadata", {}).get("answer_examples", [])
                         
-                        # 質問例と回答例をテキストに結合（検索時の優先度を向上）
+                        # 回答例をテキストに結合（検索時の優先度を向上）
                         combined_text = main_text
-                        
-                        if question_examples:
-                            # 質問例を改行で結合
-                            questions_text = "\n".join(question_examples)
-                            combined_text = f"質問例:\n{questions_text}\n\n{combined_text}"
                         
                         if answer_examples:
                             # 回答例を文字列に変換（既に文字列の場合はそのまま使用）
                             if isinstance(answer_examples[0], dict):
-                                # 辞書形式の場合は "質問: 内容, 回答: 内容" の形式に変換
+                                # 辞書形式の場合は自然な形式に変換
                                 answers_text = "\n".join([
-                                    f"質問: {qa.get('question', '')}, 回答: {qa.get('answer', '')}"
+                                    f"Q: {qa.get('question', '')}\nA: {qa.get('answer', '')}"
                                     for qa in answer_examples
                                 ])
                             else:
                                 # 文字列の場合はそのまま結合
                                 answers_text = "\n".join(answer_examples)
                             
+                            # 回答例をメインテキストの前に配置（検索時の優先度を向上）
                             combined_text = f"回答例:\n{answers_text}\n\n{combined_text}"
                         
                         vector = self.get_embedding(combined_text)
@@ -174,7 +169,6 @@ class PineconeService:
                             "created_date": chunk.get("metadata", {}).get("created_date", ""),
                             "upload_date": chunk.get("metadata", {}).get("upload_date", ""),
                             "source": chunk.get("metadata", {}).get("source", ""),
-                            "question_examples": chunk.get("metadata", {}).get("question_examples", []),
                             "answer_examples": self._convert_answer_examples_to_strings(chunk.get("metadata", {}).get("answer_examples", [])),
                             "verified": chunk.get("metadata", {}).get("verified", False),
                             "timestamp_type": chunk.get("metadata", {}).get("timestamp_type", "static"),
@@ -197,7 +191,6 @@ class PineconeService:
                         print(f"    - 中カテゴリ: {metadata['sub_category']}")
                         print(f"    - 市区町村: {metadata['city']}")
                         print(f"    - ソース: {metadata['source']}")
-                        print(f"    - 質問例: {metadata['question_examples']}")
                         print(f"    - 回答例: {metadata['answer_examples']}")
                         print(f"    - 検証済み: {metadata['verified']}")
                         print(f"    - 更新タイプ: {metadata['timestamp_type']}")
@@ -209,7 +202,6 @@ class PineconeService:
                         # ベクトル化に使用されたテキストの情報を表示
                         print(f"  ベクトル化に使用されたテキスト:")
                         print(f"    - 元のテキスト長: {len(main_text)}文字")
-                        print(f"    - 質問例数: {len(question_examples)}個")
                         print(f"    - 回答例数: {len(answer_examples)}個")
                         print(f"    - 結合テキスト長: {len(combined_text)}文字")
                         print(f"    - 結合テキスト（最初の200文字）: {combined_text[:200]}...")
