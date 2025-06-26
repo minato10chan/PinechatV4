@@ -230,6 +230,9 @@ def render_file_upload(pinecone_service: PineconeService):
     st.title("ファイルアップロード")
     st.write("テキストファイルをアップロードして、Pineconeデータベースに保存します。")
     
+    # AnswerExampleGeneratorの初期化
+    answer_generator = AnswerExampleGenerator()
+    
     uploaded_file = st.file_uploader("テキストファイルをアップロード", type=['txt', 'csv'])
     
     if uploaded_file is not None:
@@ -605,7 +608,16 @@ def render_file_upload(pinecone_service: PineconeService):
                             # AI生成ボタン
                             col1, col2 = st.columns(2)
                             with col1:
-                                if st.button(f"🤖 AIで回答例を生成", key=f"generate_answers_{i}_{chunk['id']}"):
+                                # セッション状態でボタンの状態を管理
+                                generate_key = f"generate_answers_{i}_{chunk['id']}"
+                                if generate_key not in st.session_state:
+                                    st.session_state[generate_key] = False
+                                
+                                if st.button(f"🤖 AIで回答例を生成", key=f"btn_{generate_key}"):
+                                    st.session_state[generate_key] = True
+                                
+                                # ボタンが押された場合の処理
+                                if st.session_state[generate_key]:
                                     try:
                                         with st.spinner(f"チャンク {i+1} の回答例を生成中..."):
                                             # カテゴリ情報を取得
@@ -620,7 +632,7 @@ def render_file_upload(pinecone_service: PineconeService):
                                                 subcategory = chunk.get('manual_sub_category', '')
                                             
                                             # 回答例を生成
-                                            generated_qa_pairs = question_generator.generate_answer_examples(
+                                            generated_qa_pairs = answer_generator.generate_answer_examples(
                                                 chunk['text'], 
                                                 category, 
                                                 subcategory
@@ -635,15 +647,29 @@ def render_file_upload(pinecone_service: PineconeService):
                                                 
                                                 st.success(f"✅ チャンク {i+1} の回答例を生成しました！")
                                                 st.write(f"生成された回答例: {len(generated_qa_pairs)}個")
+                                                
+                                                # ボタンの状態をリセット
+                                                st.session_state[generate_key] = False
                                             else:
                                                 st.warning("⚠️ 回答例の生成に失敗しました。")
+                                                st.session_state[generate_key] = False
                                                 
                                     except Exception as e:
                                         st.error(f"回答例生成中にエラーが発生しました: {str(e)}")
+                                        st.session_state[generate_key] = False
                             
                             with col2:
                                 if existing_qa_pairs:
-                                    if st.button(f"🔧 既存の回答例を改善", key=f"improve_answers_{i}_{chunk['id']}"):
+                                    # セッション状態で改善ボタンの状態を管理
+                                    improve_key = f"improve_answers_{i}_{chunk['id']}"
+                                    if improve_key not in st.session_state:
+                                        st.session_state[improve_key] = False
+                                    
+                                    if st.button(f"🔧 既存の回答例を改善", key=f"btn_{improve_key}"):
+                                        st.session_state[improve_key] = True
+                                    
+                                    # ボタンが押された場合の処理
+                                    if st.session_state[improve_key]:
                                         try:
                                             with st.spinner(f"チャンク {i+1} の回答例を改善中..."):
                                                 # カテゴリ情報を取得
@@ -658,7 +684,7 @@ def render_file_upload(pinecone_service: PineconeService):
                                                     subcategory = chunk.get('manual_sub_category', '')
                                                 
                                                 # 回答例を改善
-                                                improved_qa_pairs = question_generator.improve_answer_examples(
+                                                improved_qa_pairs = answer_generator.improve_answer_examples(
                                                     chunk['text'],
                                                     existing_qa_pairs,
                                                     category,
@@ -674,11 +700,16 @@ def render_file_upload(pinecone_service: PineconeService):
                                                     
                                                     st.success(f"✅ チャンク {i+1} の回答例を改善しました！")
                                                     st.write(f"改善された回答例: {len(improved_qa_pairs)}個")
+                                                    
+                                                    # ボタンの状態をリセット
+                                                    st.session_state[improve_key] = False
                                                 else:
                                                     st.warning("⚠️ 回答例の改善に失敗しました。")
+                                                    st.session_state[improve_key] = False
                                                     
                                         except Exception as e:
                                             st.error(f"回答例改善中にエラーが発生しました: {str(e)}")
+                                            st.session_state[improve_key] = False
                             
                             # 現在の回答例を表示・編集
                             current_qa_pairs = chunk.get('answer_examples', [])
@@ -713,13 +744,23 @@ def render_file_upload(pinecone_service: PineconeService):
                                         }
                                 
                                 # 新しい回答例を追加
-                                if st.button(f"➕ 新しい回答例を追加", key=f"add_answer_{i}_{chunk['id']}"):
+                                # セッション状態で追加ボタンの状態を管理
+                                add_key = f"add_answer_{i}_{chunk['id']}"
+                                if add_key not in st.session_state:
+                                    st.session_state[add_key] = False
+                                
+                                if st.button(f"➕ 新しい回答例を追加", key=f"btn_{add_key}"):
+                                    st.session_state[add_key] = True
+                                
+                                # ボタンが押された場合の処理
+                                if st.session_state[add_key]:
                                     current_qa_pairs.append({
                                         "question": "",
                                         "answer": ""
                                     })
                                     st.session_state['preview_chunks'] = preview_chunks_list
-                                    st.rerun()
+                                    # ボタンの状態をリセット
+                                    st.session_state[add_key] = False
                                 
                                 # 回答例をチャンクに保存
                                 chunk['answer_examples'] = current_qa_pairs
