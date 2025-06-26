@@ -305,9 +305,32 @@ def render_chat(pinecone_service: PineconeService):
                                     
                                     # 質問文例の表示
                                     if "質問文例" in detail and detail["質問文例"]:
-                                        st.write("**質問文例:**")
+                                        st.write("**質問文例（検索に活用）:**")
+                                        st.info("これらの質問例は検索時に優先的に考慮されます")
                                         for i, question in enumerate(detail["質問文例"], 1):
-                                            st.write(f"{i}. {question}")
+                                            st.write(f"**{i}.** {question}")
+                                    
+                                    # 回答例の表示
+                                    if "回答例" in detail and detail["回答例"]:
+                                        st.write("**回答例（検索に活用）:**")
+                                        st.info("これらの回答例も検索時に考慮されます")
+                                        for i, answer in enumerate(detail["回答例"], 1):
+                                            st.write(f"**{i}.** {answer}")
+                                    
+                                    # 検証済みフラグの表示
+                                    if "検証済み" in detail:
+                                        if detail["検証済み"]:
+                                            st.success("✅ 検証済み情報")
+                                        else:
+                                            st.warning("⚠️ 未検証情報")
+                                    
+                                    # 更新タイプの表示
+                                    if "更新タイプ" in detail:
+                                        st.write(f"**更新タイプ:** {detail['更新タイプ']}")
+                                    
+                                    # 作成年度の表示
+                                    if "作成年度" in detail and detail["作成年度"]:
+                                        st.write(f"**作成年度:** {', '.join(map(str, detail['作成年度']))}")
                                     
                                     st.text_area(f"テキスト {i}", detail['テキスト'], height=100)
                             
