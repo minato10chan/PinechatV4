@@ -293,6 +293,10 @@ def render_chat(pinecone_service: PineconeService):
                                 for i, detail in enumerate(sent_text["参照文脈の詳細"], 1):
                                     st.markdown(f"**参照 {i}**")
                                     
+                                    # チャンクIDの表示
+                                    if "チャンクID" in detail:
+                                        st.write(f"**チャンクID:** {detail['チャンクID']}")
+                                    
                                     # 高度な検索の結果を表示
                                     if "スコア" in detail:
                                         st.write(f"調整されたスコア: {detail['スコア']}")
